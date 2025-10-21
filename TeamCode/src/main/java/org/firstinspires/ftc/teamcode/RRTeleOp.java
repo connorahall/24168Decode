@@ -35,8 +35,8 @@ public class RRTeleOp extends OpMode {
             speed_factor = 0.4;
 
         // Drive
-        FL.setPower(-(gamepad1.left_stick_y * speed_factor) + (gamepad1.right_stick_x * speed_factor) + (gamepad1.left_stick_x * 0.6));
-        FR.setPower((gamepad1.left_stick_y * speed_factor) + (gamepad1.right_stick_x * speed_factor) + (gamepad1.left_stick_x * 0.6));
+        FL.setPower((gamepad1.left_stick_y * speed_factor) - (gamepad1.right_stick_x * speed_factor) - (gamepad1.left_stick_x * 0.6));
+        FR.setPower(-(gamepad1.left_stick_y * speed_factor) -  (gamepad1.right_stick_x * speed_factor) - (gamepad1.left_stick_x * 0.6));
         BL.setPower((gamepad1.left_stick_y * speed_factor) - (gamepad1.right_stick_x * speed_factor) + (gamepad1.left_stick_x * 0.6));
         BR.setPower(-(gamepad1.left_stick_y * speed_factor) - (gamepad1.right_stick_x * speed_factor) + (gamepad1.left_stick_x * 0.6));
 
