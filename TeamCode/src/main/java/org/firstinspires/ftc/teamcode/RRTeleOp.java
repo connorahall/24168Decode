@@ -29,19 +29,22 @@ public class RRTeleOp extends LinearOpMode {
     // height from launcher to goal
     double h = 40;
     ElapsedTime game;
+    enum State {
+        INTAKE, LAUNCH
+    }
+    State mode = State.LAUNCH;
 
 
 
     @Override
     public void runOpMode() throws InterruptedException {
 
-        DcMotor FL = hardwareMap.get(DcMotor.class, "FL");
-        DcMotor FR = hardwareMap.get(DcMotor.class, "FR");
-        DcMotor BL = hardwareMap.get(DcMotor.class, "BL");
-        DcMotor BR = hardwareMap.get(DcMotor.class, "BR");
         DcMotorEx launcher = hardwareMap.get(DcMotorEx.class, "launcher");
+        DcMotorEx intake = hardwareMap.get(DcMotorEx.class, "intake");
         Servo flipper = hardwareMap.get(Servo.class, "flipper");
         CRServo sorter = hardwareMap.get(CRServo.class, "sorter");
+
+        launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -71,6 +74,20 @@ public class RRTeleOp extends LinearOpMode {
         while (opModeIsActive() && !isStopRequested()) {
 
             telemetry.update();
+
+            if (gamepad1.dpad_up) {
+                mode = State.LAUNCH;
+                launcher.setVelocity(240, AngleUnit.DEGREES);
+                intake.setPower(0);
+            } if (gamepad1.dpad_down) {
+                mode = State.INTAKE;
+                launcher.setPower(0);
+                launcher.setVelocity(0);
+                intake.setPower(-1);
+            } if (gamepad1.dpad_right) {
+                intake.setPower(0);
+                launcher.setPower(0);
+            }
 
             double headingRobot = drive.getPoseEstimate().getHeading();
 
@@ -130,9 +147,11 @@ public class RRTeleOp extends LinearOpMode {
                 if (!gamepad1.left_bumper || !gamepad1.right_bumper)
                     spinning = false;
             }
+            if (!(spinning || gamepad1.left_bumper || gamepad1.right_bumper)) {
+                sorter.setPower(0.1 * gamepad1.right_stick_y);
+            }
 
             System.out.println(launcher.getVelocity(AngleUnit.DEGREES));
-//            launcher.setPower(1);
 //            launcher.setVelocity((int)(36000. * gamepad1.right_stick_y), AngleUnit.DEGREES);
 
 
