@@ -41,6 +41,10 @@ public class RRTeleOp extends LinearOpMode {
 
         DcMotorEx launcher = hardwareMap.get(DcMotorEx.class, "launcher");
         DcMotorEx intake = hardwareMap.get(DcMotorEx.class, "intake");
+        DcMotor FL = hardwareMap.get(DcMotor.class, "FL");
+        DcMotor FR = hardwareMap.get(DcMotor.class, "FR");
+        DcMotor BL = hardwareMap.get(DcMotor.class, "BL");
+        DcMotor BR = hardwareMap.get(DcMotor.class, "BR");
         Servo flipper = hardwareMap.get(Servo.class, "flipper");
         CRServo sorter = hardwareMap.get(CRServo.class, "sorter");
 
@@ -48,7 +52,7 @@ public class RRTeleOp extends LinearOpMode {
 
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         drive.setPoseEstimate(new Pose2d(0, 0, 0));
 
         double speed_factor;
@@ -69,6 +73,15 @@ public class RRTeleOp extends LinearOpMode {
 
         ElapsedTime timer = new ElapsedTime();
 
+        intake.setPower(0.5);
+        sorter.setPower(0);
+        flipper.setPosition(0);
+//
+//        FL.setPower(1);
+//        FR.setPower(1);
+//        BL.setPower(1);
+//        BR.setPower(1);
+
         game = new ElapsedTime();
         if (isStopRequested()) return;
         while (opModeIsActive() && !isStopRequested()) {
@@ -77,13 +90,11 @@ public class RRTeleOp extends LinearOpMode {
 
             if (gamepad1.dpad_up) {
                 mode = State.LAUNCH;
-                launcher.setVelocity(240, AngleUnit.DEGREES);
-                intake.setPower(0);
+                launcher.setVelocity(210, AngleUnit.DEGREES);
+                intake.setPower(0.5);
             } if (gamepad1.dpad_down) {
                 mode = State.INTAKE;
-                launcher.setPower(0);
-                launcher.setVelocity(0);
-                intake.setPower(-1);
+                launcher.setVelocity(-180, AngleUnit.DEGREES);
             } if (gamepad1.dpad_right) {
                 intake.setPower(0);
                 launcher.setPower(0);
@@ -97,22 +108,22 @@ public class RRTeleOp extends LinearOpMode {
                 speed_factor = 0.6;
 
             // drive code
-            Vector2d input;
-            input = new Vector2d(
-                    -gamepad1.left_stick_y * speed_factor,
-                    -gamepad1.left_stick_x * speed_factor
-            ).rotated(-headingRobot);
-
-            drive.setWeightedDrivePower(new Pose2d(
-                            input.getX(), input.getY(),
-                            -gamepad1.right_stick_x * speed_factor
-                    )
-            );
-
-            // reset robot heading
-            if (gamepad1.options){
-                drive.setPoseEstimate(new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), 0));
-            }
+//            Vector2d input;
+//            input = new Vector2d(
+//                    -gamepad1.left_stick_y * speed_factor,
+//                    -gamepad1.left_stick_x * speed_factor
+//            ).rotated(-headingRobot);
+//
+//            drive.setWeightedDrivePower(new Pose2d(
+//                            input.getX(), input.getY(),
+//                            -gamepad1.right_stick_x * speed_factor
+//                    )
+//            );
+//
+//            // reset robot heading
+//            if (gamepad1.options){
+//                drive.setPoseEstimate(new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), 0));
+//            }
 
             // put a ball into launcher
             if (gamepad1.right_trigger > 0.5) {
@@ -148,7 +159,7 @@ public class RRTeleOp extends LinearOpMode {
                     spinning = false;
             }
             if (!(spinning || gamepad1.left_bumper || gamepad1.right_bumper)) {
-                sorter.setPower(0.1 * gamepad1.right_stick_y);
+                sorter.setPower(0.15 * gamepad1.right_stick_y);
             }
 
             System.out.println(launcher.getVelocity(AngleUnit.DEGREES));
@@ -157,10 +168,10 @@ public class RRTeleOp extends LinearOpMode {
 
 
 //        // Drive before roadrunner implementation
-//        FL.setPower((gamepad1.left_stick_y * speed_factor) - (gamepad1.right_stick_x * speed_factor) - (gamepad1.left_stick_x * speed_factor));
-//        FR.setPower(-(gamepad1.left_stick_y * speed_factor) -  (gamepad1.right_stick_x * speed_factor) - (gamepad1.left_stick_x * speed_factor));
-//        BL.setPower((gamepad1.left_stick_y * speed_factor) - (gamepad1.right_stick_x * speed_factor) + (gamepad1.left_stick_x * speed_factor));
-//        BR.setPower(-(gamepad1.left_stick_y * speed_factor) - (gamepad1.right_stick_x * speed_factor) + (gamepad1.left_stick_x * speed_factor));
+            FL.setPower(-((gamepad1.left_stick_y * speed_factor) - (gamepad1.right_stick_x * speed_factor) - (gamepad1.left_stick_x * speed_factor)));
+            FR.setPower(-((gamepad1.left_stick_y * speed_factor) + (gamepad1.right_stick_x * speed_factor) + (gamepad1.left_stick_x * speed_factor)));
+            BL.setPower(-((gamepad1.left_stick_y * speed_factor) - (gamepad1.right_stick_x * speed_factor) + (gamepad1.left_stick_x * speed_factor)));
+            BR.setPower(-((gamepad1.left_stick_y * speed_factor) + (gamepad1.right_stick_x * speed_factor) - (gamepad1.left_stick_x * speed_factor)));
 
             drive.update();
         }

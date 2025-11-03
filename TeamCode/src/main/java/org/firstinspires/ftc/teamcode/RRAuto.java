@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -7,11 +8,14 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
+import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuilder;
 
 @Autonomous(name = "RRAuto")
-@Disabled
 public class RRAuto extends LinearOpMode {
 
     DcMotor FR;
@@ -20,8 +24,11 @@ public class RRAuto extends LinearOpMode {
     DcMotor BL;
 
     enum State {
-        IDLE
+        IDLE, SCORE_FIRST, SCORING_FIRST
     }
+
+    ElapsedTime game;
+
 
 
     public void runOpMode() {
@@ -42,11 +49,92 @@ public class RRAuto extends LinearOpMode {
         drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
 
+        TrajectorySequence scoreFirst = drive.trajectorySequenceBuilder(new Pose2d(-50, 50, Math.toRadians(-40)))
+                .lineToLinearHeading(new Pose2d(-20, 18, Math.toRadians(140)))
+                .build();
 
 
+        drive.setPoseEstimate(scoreFirst.start());
+
+//        System.out.println("build");
 
         waitForStart();
 
+//        System.out.println("start");
+
+        double flipperTime = 0.0;
+        boolean flipping = false;
+        double spinningTime = 0.0;
+        boolean spinning = false;
+
+        ElapsedTime timer = new ElapsedTime();
+
+        intake.setPower(0.5);
+        sorter.setPower(0);
+        flipper.setPosition(0);
+        launcher.setVelocity(220, AngleUnit.DEGREES);
+
+
+        drive.followTrajectorySequenceAsync(scoreFirst);
+        State state = State.SCORE_FIRST;
+        int launched = 0;
+
+        game = new ElapsedTime();
+
+
+        if(isStopRequested()) return;
+
+//        System.out.println("before loop");
+
+        while(opModeIsActive() && !isStopRequested()) {
+//            System.out.println(game.milliseconds());
+
+            switch(state) {
+                case SCORE_FIRST:
+                    if (!drive.isBusy()) {
+                        state = State.SCORING_FIRST;
+                    }
+                    break;
+                case SCORING_FIRST:
+                    if (launched == 3) {
+                        state = State.IDLE;
+                    } else {
+                        if (!flipping && !spinning) {
+                            flipping = true;
+                            flipperTime = game.milliseconds();
+                            flipper.setPosition(1);
+                            System.out.println("first");
+                        } else if (flipping && flipperTime + 1000 < game.milliseconds()) {
+                            flipper.setPosition(0);
+                            flipping = false;
+                            launched++;
+                            System.out.println(launcher.getVelocity(AngleUnit.DEGREES));
+                            spinning = true;
+                            spinningTime = game.milliseconds();
+                            System.out.println("second");
+                        }
+                        else if (spinning && spinningTime + 1000 < game.milliseconds() && spinningTime + 1050 > game.milliseconds()) {
+                            sorter.setPower(-1);
+                            System.out.println("third");
+                        }
+                        else if (spinning && spinningTime + 1502 < game.milliseconds()) {
+                            sorter.setPower(0);
+                            spinning = false;
+                            System.out.println("Fourth");
+                        }
+
+                    }
+                    break;
+                case IDLE:
+                    launcher.setPower(0);
+                    sorter.setPower(0);
+                    flipper.setPosition(0);
+                    intake.setPower(0);
+                    break;
+            }
+
+            drive.update();
+        }
 
 
 
