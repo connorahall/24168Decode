@@ -1,4 +1,5 @@
 package org.firstinspires.ftc.teamcode;
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
 import static java.lang.Thread.sleep;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
@@ -18,6 +19,7 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import java.util.HashMap;
 
 @TeleOp(name = "RRTeleOp")
+
 public class RRTeleOp extends LinearOpMode {
 
 
@@ -34,28 +36,37 @@ public class RRTeleOp extends LinearOpMode {
     }
     State mode = State.LAUNCH;
 
-    Robot bot = new Robot();
+    Robot bot;
 
     @Override
     public void runOpMode() throws InterruptedException {
+        DcMotorEx launcher = hardwareMap.get(DcMotorEx.class, "launcher");
+        DcMotorEx intake = hardwareMap.get(DcMotorEx.class, "intake");
+        DcMotorEx FL = hardwareMap.get(DcMotorEx.class, "FL");
+        DcMotorEx FR = hardwareMap.get(DcMotorEx.class, "FR");
+        DcMotorEx BL = hardwareMap.get(DcMotorEx.class, "BL");
+        DcMotorEx BR = hardwareMap.get(DcMotorEx.class, "BR");
+        Servo flipper = hardwareMap.get(Servo.class, "flipper");
+        CRServo sorter = hardwareMap.get(CRServo.class, "sorter");
 
-
-        telemetry.addData("initialization:", "is a success");
-        telemetry.update();
+        bot = new Robot(launcher, intake, FL, FR, BL, BR, flipper, sorter, Robot.OpMode.TELEOP);
 
 //        launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        SampleMecanumDrive drive = bot.getDrive();
+        bot.getDrive().setPoseEstimate(new Pose2d(0, 0, Math.toRadians(90)));
+
+
 //        drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 //        drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 //        drive.setPoseEstimate(new Pose2d(0, 0, 0));
 
-        double launchTablePrecision = 0.01;
-        HashMap<Double, Double> launchTable = new HashMap<>((int) (1.5 / launchTablePrecision));
-        launchTable = generateLaunchTable(launchTablePrecision);
+//        double launchTablePrecision = 0.01;
+//        HashMap<Double, Double> launchTable = new HashMap<>((int) (1.5 / launchTablePrecision));
+//        launchTable = generateLaunchTable(launchTablePrecision);
 
+        telemetry.addData("initialization:", "is a success");
+        telemetry.update();
         waitForStart();
-
 
         bot.setInitialState();
 
@@ -70,7 +81,8 @@ public class RRTeleOp extends LinearOpMode {
                 bot.setIntakePower(0.5);
             } if (gamepad1.dpad_down) {
                 mode = State.INTAKE;
-                bot.setLauncherVelocity(-180);
+                bot.setLauncherVelocity(0);
+                bot.setIntakePower(-1);
             } if (gamepad1.dpad_right) {
                 bot.setLauncherVelocity(0);
                 bot.setIntakePower(0);
@@ -90,7 +102,6 @@ public class RRTeleOp extends LinearOpMode {
                 bot.moveSorterReverse();
             }
 
-            drive.update();
             bot.update();
         }
     }

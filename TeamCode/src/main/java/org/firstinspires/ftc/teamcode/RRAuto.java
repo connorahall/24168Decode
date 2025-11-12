@@ -22,14 +22,24 @@ public class RRAuto extends LinearOpMode {
         IDLE, SCORE_FIRST, SCORING_FIRST
     }
 
-    static Robot bot = new Robot();
-    final Object lock = bot.getLock();
+    Robot bot;
+//    final Object lock = bot.getLock();
+    Object lock;
 
 
     public void runOpMode() throws InterruptedException {
 
-        telemetry.addData("initialization:", "is a success");
-        telemetry.update();
+        DcMotorEx launcher = hardwareMap.get(DcMotorEx.class, "launcher");
+        DcMotorEx intake = hardwareMap.get(DcMotorEx.class, "intake");
+        DcMotorEx FL = hardwareMap.get(DcMotorEx.class, "FL");
+        DcMotorEx FR = hardwareMap.get(DcMotorEx.class, "FR");
+        DcMotorEx BL = hardwareMap.get(DcMotorEx.class, "BL");
+        DcMotorEx BR = hardwareMap.get(DcMotorEx.class, "BR");
+        Servo flipper = hardwareMap.get(Servo.class, "flipper");
+        CRServo sorter = hardwareMap.get(CRServo.class, "sorter");
+
+        bot = new Robot(launcher, intake, FL, FR, BL, BR, flipper, sorter);
+        lock = bot.getLock();
 
 //
 //        launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -45,6 +55,9 @@ public class RRAuto extends LinearOpMode {
 
 
         bot.setPoseEstimate(scoreFirst.start());
+
+        telemetry.addData("initialization:", "is a success");
+        telemetry.update();
 
         waitForStart();
 
@@ -73,8 +86,6 @@ public class RRAuto extends LinearOpMode {
                             wait();
                             launched++;
                         }
-
-
                     }
                     break;
                 case IDLE:
@@ -87,10 +98,6 @@ public class RRAuto extends LinearOpMode {
         }
 
 
-    }
-
-    public static Robot getBot() {
-        return bot;
     }
 
 }

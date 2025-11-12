@@ -22,9 +22,6 @@ import java.util.Map;
 
 public class Robot {
     SampleMecanumDrive drive;
-    Map<String, DcMotorEx> hardwareMotor;
-    Map<String, Servo> hardwareServo;
-    Map<String, CRServo> hardwareCRServo;
     DcMotorEx launcher, intake, FL, FR, BL, BR;
     Servo flipper;
     CRServo sorter;
@@ -41,26 +38,17 @@ public class Robot {
     }
     OpMode mode = OpMode.AUTO;
 
-    public Robot() {
-        launcher = hardwareMap.get(DcMotorEx.class, "launcher");
-        intake = hardwareMap.get(DcMotorEx.class, "intake");
-        FL = hardwareMap.get(DcMotorEx.class, "FL");
-        FR = hardwareMap.get(DcMotorEx.class, "FR");
-        BL = hardwareMap.get(DcMotorEx.class, "BL");
-        BR = hardwareMap.get(DcMotorEx.class, "BR");
-        flipper = hardwareMap.get(Servo.class, "flipper");
-        sorter = hardwareMap.get(CRServo.class, "sorter");
+    public Robot(DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter) {
+        this.launcher = launcher;
+        this.intake = intake;
+        this.FL = FL;
+        this.FR = FR;
+        this.BL = BL;
+        this.BR = BR;
+        this.flipper = flipper;
+        this.sorter = sorter;
 
         launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-
-        hardwareMotor.put("launcher", launcher);
-        hardwareMotor.put("intake", intake);
-        hardwareMotor.put("FL", FL);
-        hardwareMotor.put("FR", FR);
-        hardwareMotor.put("BL", BL);
-        hardwareMotor.put("BR", BR);
-        hardwareServo.put("flipper", flipper);
-        hardwareCRServo.put("sorter", sorter);
 
         drive = new SampleMecanumDrive(hardwareMap);
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -77,9 +65,20 @@ public class Robot {
         timer = new ElapsedTime();
     }
 
-    public Robot(Pose2d startingPose) {
-        this();
+    public Robot(DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, Pose2d startingPose) {
+        this(launcher, intake, FL, FR, BL, BR, flipper, sorter);
         drive.setPoseEstimate(startingPose);
+    }
+
+    public Robot(DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, Robot.OpMode mode) {
+        this(launcher, intake, FL, FR, BL, BR, flipper, sorter);
+        this.mode = mode;
+    }
+
+    public Robot(DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, Pose2d startingPose, Robot.OpMode mode) {
+        this(launcher, intake, FL, FR, BL, BR, flipper, sorter);
+        drive.setPoseEstimate(startingPose);
+        this.mode = mode;
     }
 
     public void update() throws InterruptedException {
@@ -117,30 +116,10 @@ public class Robot {
                 drive.setPoseEstimate(new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), 90));
             }
 
+            drive.update();
         }
     }
 
-    private void checkhardware(String device) {
-        if (hardwareMotor.get(device) == null) {
-            System.out.println("Motor '" + device + "' is null");
-        } else if (hardwareServo.get(device) == null) {
-            System.out.println("Servo '" + device + "' is null");
-        } else if (hardwareServo.get(device) == null) {
-            System.out.println("CRServo '" + device + "' is null");
-        }
-    }
-    public DcMotorEx getMotor(String motor) {
-        checkhardware(motor);
-        return hardwareMotor.get(motor);
-    }
-    public Servo getServo(String servo) {
-        checkhardware(servo);
-        return hardwareServo.get(servo);
-    }
-    public CRServo getCRServo(String cRServo) {
-        checkhardware(cRServo);
-        return hardwareCRServo.get(cRServo);
-    }
     public SampleMecanumDrive getDrive() {
         return drive;
     }
