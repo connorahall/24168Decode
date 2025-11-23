@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -13,10 +12,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
-import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuilder;
 
-@Autonomous(name = "RRAuto")
-public class RRAuto extends LinearOpMode {
+@Autonomous(name = "RRAutoRed")
+public class RRAutoRed extends LinearOpMode {
 
     DcMotor FR;
     DcMotor FL;
@@ -24,7 +22,7 @@ public class RRAuto extends LinearOpMode {
     DcMotor BL;
 
     enum State {
-        IDLE, SCORE_FIRST, SCORING_FIRST
+        IDLE, SCORE_FIRST, SCORING_FIRST, PREP
     }
 
     ElapsedTime game;
@@ -51,6 +49,9 @@ public class RRAuto extends LinearOpMode {
 
         TrajectorySequence scoreFirst = drive.trajectorySequenceBuilder(new Pose2d(-50, 50, Math.toRadians(-40)))
                 .lineToLinearHeading(new Pose2d(-20, 18, Math.toRadians(140)))
+                .build();
+        TrajectorySequence prep = drive.trajectorySequenceBuilder(scoreFirst.end())
+                .lineToLinearHeading(new Pose2d(-20, 20, Math.toRadians(90)))
                 .build();
 
 
@@ -97,13 +98,14 @@ public class RRAuto extends LinearOpMode {
                     break;
                 case SCORING_FIRST:
                     if (launched == 3) {
-                        state = State.IDLE;
+                        state = State.PREP;
+                        drive.followTrajectorySequenceAsync(prep);
                     } else {
                         if (!flipping && !spinning) {
                             flipping = true;
                             flipperTime = game.milliseconds();
                             flipper.setPosition(1);
-                            System.out.println("first");
+//                            System.out.println("first");
                         } else if (flipping && flipperTime + 1000 < game.milliseconds()) {
                             flipper.setPosition(0);
                             flipping = false;
@@ -111,18 +113,23 @@ public class RRAuto extends LinearOpMode {
                             System.out.println(launcher.getVelocity(AngleUnit.DEGREES));
                             spinning = true;
                             spinningTime = game.milliseconds();
-                            System.out.println("second");
+//                            System.out.println("second");
                         }
                         else if (spinning && spinningTime + 1000 < game.milliseconds() && spinningTime + 1050 > game.milliseconds()) {
                             sorter.setPower(-1);
-                            System.out.println("third");
+//                            System.out.println("third");
                         }
                         else if (spinning && spinningTime + 1502 < game.milliseconds()) {
                             sorter.setPower(0);
                             spinning = false;
-                            System.out.println("Fourth");
+//                            System.out.println("Fourth");
                         }
 
+                    }
+                    break;
+                case PREP:
+                    if (!drive.isBusy()) {
+                        state = State.IDLE;
                     }
                     break;
                 case IDLE:
