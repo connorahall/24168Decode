@@ -49,6 +49,7 @@ import com.acmerobotics.roadrunner.geometry.Pose2d;
 
 
 import java.util.List;
+import com.acmerobotics.dashboard.config.Config;
 
 /*
  * This OpMode illustrates the basics of AprilTag based localization.
@@ -98,10 +99,10 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
      * it's pointing straight left, -90 degrees for straight right, etc. You can also set the roll
      * to +/-90 degrees if it's vertical, or 180 degrees if it's upside-down.
      */
-    private Position cameraPosition = new Position(DistanceUnit.INCH,
-            0, 0, 0, 0);
-    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
-            0, -90, 0, 0);
+    public static Position cameraPosition = new Position(DistanceUnit.INCH,
+            1, 3, 8.5, 0);
+    public static YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
+            0, -73, 0, 0);
 
     /**
      * The variable to store our instance of the AprilTag processor.
@@ -134,6 +135,7 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
 
             // Push telemetry to the Driver Station.
             telemetry.update();
+            drive.update();
 
             // Save CPU resources; can resume streaming when needed.
             if (gamepad1.dpad_down) {
@@ -143,7 +145,7 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
             }
 
             // Share the CPU.
-            sleep(20);
+            sleep(50);
         }
 
         // Save more CPU resources when camera is no longer needed.
@@ -243,13 +245,11 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
                             detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
                             detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
 //                    robotPose = to2d(detection.robotPose);
-
+                    drive.setPoseEstimate(new Pose2d(detection.robotPose.getPosition().x, detection.robotPose.getPosition().y, detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS) + Math.toRadians(90)));
                 }
-                drive.setWeightedDrivePower(new Pose2d(detection.robotPose.getPosition().x/10, detection.robotPose.getPosition().y/10, drive.getPoseEstimate().getHeading()));
             } else {
                 telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
                 telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
-                drive.setWeightedDrivePower(new Pose2d(0, 0, drive.getPoseEstimate().getHeading()));
             }
         }   // end for() loop
 

@@ -30,10 +30,10 @@ public class MeepMeepTesting {
                             .lineToLinearHeading(new Pose2d(-20, -18, Math.toRadians(230)))
                             .lineToLinearHeading(new Pose2d(-20, -20, Math.toRadians(270)))
 
-//                        .splineToLinearHeading(new Pose2d(-12, -30, Math.toRadians(270)), Math.toRadians(270))
-//                        .lineToLinearHeading(new Pose2d(-12, -50, Math.toRadians(270)))
-//                        .setReversed(true)
-//                        .splineToLinearHeading(new Pose2d(-16, -10, Math.toRadians(220)), Math.toRadians(90))
+                        .splineToLinearHeading(new Pose2d(-12, -30, Math.toRadians(270)), Math.toRadians(270))
+                        .lineToLinearHeading(new Pose2d(-12, -50, Math.toRadians(270)))
+                        .setReversed(true)
+                        .splineToLinearHeading(new Pose2d(-16, -10, Math.toRadians(220)), Math.toRadians(90))
                         .build());
 
 

@@ -1,4 +1,5 @@
 package org.firstinspires.ftc.teamcode;
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
 import static java.lang.Thread.sleep;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
@@ -34,54 +35,42 @@ public class RRTeleOp extends LinearOpMode {
     }
     State mode = State.LAUNCH;
 
-
+    Robot bot;
 
     @Override
     public void runOpMode() throws InterruptedException {
-
         DcMotorEx launcher = hardwareMap.get(DcMotorEx.class, "launcher");
         DcMotorEx intake = hardwareMap.get(DcMotorEx.class, "intake");
-        DcMotor FL = hardwareMap.get(DcMotor.class, "FL");
-        DcMotor FR = hardwareMap.get(DcMotor.class, "FR");
-        DcMotor BL = hardwareMap.get(DcMotor.class, "BL");
-        DcMotor BR = hardwareMap.get(DcMotor.class, "BR");
+        DcMotorEx FL = hardwareMap.get(DcMotorEx.class, "FL");
+        DcMotorEx FR = hardwareMap.get(DcMotorEx.class, "FR");
+        DcMotorEx BL = hardwareMap.get(DcMotorEx.class, "BL");
+        DcMotorEx BR = hardwareMap.get(DcMotorEx.class, "BR");
         Servo flipper = hardwareMap.get(Servo.class, "flipper");
         CRServo sorter = hardwareMap.get(CRServo.class, "sorter");
 
-        launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
-        drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        bot = new Robot(drive, gamepad1, launcher, intake, FL, FR, BL, BR, flipper, sorter, Robot.OpMode.TELEOP);
+
+//        launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        bot.getDrive().setPoseEstimate(new Pose2d(0, 0, Math.toRadians(90)));
+
+
+//        drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 //        drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        drive.setPoseEstimate(new Pose2d(0, 0, Math.toRadians(90)));
+//        drive.setPoseEstimate(new Pose2d(0, 0, 0));
 
-        double speed_factor;
-
-        double flipperTime = 0.0;
-        boolean flipping = false;
-        double spinningTime = 0.0;
-        boolean spinning = false;
-
-        waitForStart();
-
-        // 6000 rpm = 36000 deg/s
-//        launcher.setVelocity(36000, AngleUnit.DEGREES);
-
-        double launchTablePrecision = 0.01;
-        HashMap<Double, Double> launchTable = new HashMap<Double, Double>((int)(1.5 / launchTablePrecision));
+//        double launchTablePrecision = 0.01;
+//        HashMap<Double, Double> launchTable = new HashMap<>((int) (1.5 / launchTablePrecision));
 //        launchTable = generateLaunchTable(launchTablePrecision);
 
+        telemetry.addData("initialization:", "is a success");
+        telemetry.update();
+        waitForStart();
 
-        intake.setPower(0.5);
-        sorter.setPower(0);
-        flipper.setPosition(0);
-//
-//        FL.setPower(1);
-//        FR.setPower(1);
-//        BL.setPower(1);
-//        BR.setPower(1);
+        bot.setInitialState();
 
-        game = new ElapsedTime();
         if (isStopRequested()) return;
         while (opModeIsActive() && !isStopRequested()) {
 
@@ -89,97 +78,38 @@ public class RRTeleOp extends LinearOpMode {
 
             if (gamepad1.dpad_up) {
                 mode = State.LAUNCH;
-                launcher.setVelocity(230, AngleUnit.DEGREES);
-                intake.setPower(0.5);
+                bot.setLauncherVelocity(230);
+                bot.setIntakePower(-0.5);
             } if (gamepad1.dpad_down) {
                 mode = State.INTAKE;
-                launcher.setVelocity(0, AngleUnit.DEGREES);
-                intake.setPower(-1);
+                bot.setLauncherVelocity(0);
+                bot.setIntakePower(1);
             } if (gamepad1.dpad_right) {
-                intake.setPower(0);
-                launcher.setPower(0);
-            }
-
-            double headingRobot = drive.getPoseEstimate().getHeading();
-
-            if (gamepad1.left_trigger > 0.5)
-                speed_factor = 1;
-            else
-                speed_factor = 0.6;
-
-            // drive code
-            Vector2d input;
-            input = new Vector2d(
-                    -gamepad1.left_stick_y * speed_factor,
-                    -gamepad1.left_stick_x * speed_factor
-            ).rotated(-(headingRobot-Math.toRadians(90)));
-
-            drive.setWeightedDrivePower(new Pose2d(
-                            input.getX(), input.getY(),
-                            -gamepad1.right_stick_x * speed_factor
-                    )
-            );
-
-
-//        // Drive before roadrunner implementation
-//            FL.setPower(-((gamepad1.left_stick_y * speed_factor) - (gamepad1.right_stick_x * speed_factor) - (gamepad1.left_stick_x * speed_factor)));
-//            FR.setPower(-((gamepad1.left_stick_y * speed_factor) + (gamepad1.right_stick_x * speed_factor) + (gamepad1.left_stick_x * speed_factor)));
-//            BL.setPower(-((gamepad1.left_stick_y * speed_factor) - (gamepad1.right_stick_x * speed_factor) + (gamepad1.left_stick_x * speed_factor)));
-//            BR.setPower(-((gamepad1.left_stick_y * speed_factor) + (gamepad1.right_stick_x * speed_factor) - (gamepad1.left_stick_x * speed_factor)));
-
-            // reset robot heading
-            if (gamepad1.options){
-                drive.setPoseEstimate(new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), Math.toRadians(90)));
+                bot.setLauncherVelocity(0);
+                bot.setIntakePower(0);
             }
 
             // put a ball into launcher
             if (gamepad1.right_trigger > 0.5) {
-                flipping = true;
-                flipperTime = game.milliseconds();
-                flipper.setPosition(1);
-            }
-            if (flipping && flipperTime + 500 < game.milliseconds()) {
-                flipper.setPosition(0);
-                flipping = false;
+                bot.launch();
             }
 
             // drum sorter spinner code
-            if (!spinning) {
-                spinningTime = game.milliseconds();
-            }
-            if (gamepad1.left_bumper && !spinning) {
-                spinning = true;
-                sorter.setPower(-1);
-            }
-            if (spinning && spinningTime + 498 < game.milliseconds()) {
-                sorter.setPower(0);
-                if (!gamepad1.left_bumper || !gamepad1.right_bumper)
-                    spinning = false;
-            }
-            if (gamepad1.right_bumper && !spinning) {
-                spinning = true;
-                sorter.setPower(1);
-            }
-            if (spinning && spinningTime + 498 < game.milliseconds()) {
-                sorter.setPower(0);
-                if (!gamepad1.left_bumper || !gamepad1.right_bumper)
-                    spinning = false;
-            }
-            if (!(spinning || gamepad1.left_bumper || gamepad1.right_bumper)) {
-                sorter.setPower(0.15 * gamepad1.right_stick_y);
+            if (gamepad1.left_bumper) {
+                bot.moveSorter();
             }
 
-            System.out.println(launcher.getVelocity(AngleUnit.DEGREES));
-//            launcher.setVelocity((int)(36000. * gamepad1.right_stick_y), AngleUnit.DEGREES);
+            if (gamepad1.right_bumper) {
+                bot.moveSorterReverse();
+            }
 
-
-            drive.update();
+            bot.update();
         }
     }
 
     HashMap<Double, Double> generateLaunchTable(double precision) {
 
-        HashMap<Double, Double> ret = new HashMap<Double, Double>((int)(1.5 / precision));
+        HashMap<Double, Double> ret = new HashMap<>((int) (1.5 / precision));
 
         // find max of angle to distance
         double max = 0.;
