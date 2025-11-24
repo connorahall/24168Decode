@@ -10,6 +10,7 @@ import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -22,6 +23,7 @@ import java.util.Map;
 
 public class Robot {
     SampleMecanumDrive drive;
+    Gamepad gamepad1;
     DcMotorEx launcher, intake, FL, FR, BL, BR;
     Servo flipper;
     CRServo sorter;
@@ -38,7 +40,7 @@ public class Robot {
     }
     OpMode mode = OpMode.AUTO;
 
-    public Robot(DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter) {
+    public Robot(SampleMecanumDrive drive, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter) {
         this.launcher = launcher;
         this.intake = intake;
         this.FL = FL;
@@ -50,7 +52,7 @@ public class Robot {
 
         launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        drive = new SampleMecanumDrive(hardwareMap);
+        this.drive = drive;
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
@@ -65,21 +67,19 @@ public class Robot {
         timer = new ElapsedTime();
     }
 
-    public Robot(DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, Pose2d startingPose) {
-        this(launcher, intake, FL, FR, BL, BR, flipper, sorter);
+    // auto constructor
+    public Robot(SampleMecanumDrive drive, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, Pose2d startingPose) {
+        this(drive, launcher, intake, FL, FR, BL, BR, flipper, sorter);
         drive.setPoseEstimate(startingPose);
     }
 
-    public Robot(DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, Robot.OpMode mode) {
-        this(launcher, intake, FL, FR, BL, BR, flipper, sorter);
+    // teleop constructor
+    public Robot(SampleMecanumDrive drive, Gamepad gamepad, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, Robot.OpMode mode) {
+        this(drive, launcher, intake, FL, FR, BL, BR, flipper, sorter);
         this.mode = mode;
+        gamepad1 = gamepad;
     }
 
-    public Robot(DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, Pose2d startingPose, Robot.OpMode mode) {
-        this(launcher, intake, FL, FR, BL, BR, flipper, sorter);
-        drive.setPoseEstimate(startingPose);
-        this.mode = mode;
-    }
 
     public void update() throws InterruptedException {
 
@@ -133,7 +133,7 @@ public class Robot {
         this.mode = mode;
     }
     public void setInitialState() {
-        intake.setPower(0.5);
+        intake.setPower(0);
         sorter.setPower(0);
         flipper.setPosition(0);
     }
@@ -176,6 +176,11 @@ public class Robot {
         }
     }
     public void moveSorterReverse() {
+        if (!spinning) {
+            spinning = true;
+            spinningTime = timer.milliseconds();
+            sorter.setPower(1);
+        }
 
     }
     public void launchAndSort() {

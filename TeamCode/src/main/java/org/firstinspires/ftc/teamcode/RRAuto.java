@@ -38,13 +38,14 @@ public class RRAuto extends LinearOpMode {
         Servo flipper = hardwareMap.get(Servo.class, "flipper");
         CRServo sorter = hardwareMap.get(CRServo.class, "sorter");
 
-        bot = new Robot(launcher, intake, FL, FR, BL, BR, flipper, sorter);
+        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+
+        bot = new Robot(drive, launcher, intake, FL, FR, BL, BR, flipper, sorter);
         lock = bot.getLock();
 
 //
 //        launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 //
-        SampleMecanumDrive drive = bot.getDrive();
 //        drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 //        drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 

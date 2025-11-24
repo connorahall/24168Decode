@@ -49,7 +49,9 @@ public class RRTeleOp extends LinearOpMode {
         Servo flipper = hardwareMap.get(Servo.class, "flipper");
         CRServo sorter = hardwareMap.get(CRServo.class, "sorter");
 
-        bot = new Robot(launcher, intake, FL, FR, BL, BR, flipper, sorter, Robot.OpMode.TELEOP);
+        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+
+        bot = new Robot(drive, gamepad1, launcher, intake, FL, FR, BL, BR, flipper, sorter, Robot.OpMode.TELEOP);
 
 //        launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
@@ -78,11 +80,11 @@ public class RRTeleOp extends LinearOpMode {
             if (gamepad1.dpad_up) {
                 mode = State.LAUNCH;
                 bot.setLauncherVelocity(230);
-                bot.setIntakePower(0.5);
+                bot.setIntakePower(-0.5);
             } if (gamepad1.dpad_down) {
                 mode = State.INTAKE;
                 bot.setLauncherVelocity(0);
-                bot.setIntakePower(-1);
+                bot.setIntakePower(1);
             } if (gamepad1.dpad_right) {
                 bot.setLauncherVelocity(0);
                 bot.setIntakePower(0);
