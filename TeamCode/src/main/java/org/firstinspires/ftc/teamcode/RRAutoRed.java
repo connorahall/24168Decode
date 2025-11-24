@@ -15,11 +15,11 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuilder;
 
-@Autonomous(name = "RRAuto")
-public class RRAuto extends LinearOpMode {
+@Autonomous(name = "RRAutoRed")
+public class RRAutoRed extends LinearOpMode {
 
     enum State {
-        IDLE, SCORE_FIRST, SCORING_FIRST
+        IDLE, SCORE_FIRST, SCORING_FIRST, PREP
     }
 
     Robot bot;
@@ -53,6 +53,9 @@ public class RRAuto extends LinearOpMode {
         TrajectorySequence scoreFirst = drive.trajectorySequenceBuilder(new Pose2d(-50, 50, Math.toRadians(-40)))
                 .lineToLinearHeading(new Pose2d(-20, 18, Math.toRadians(140)))
                 .build();
+        TrajectorySequence prep = drive.trajectorySequenceBuilder(scoreFirst.end())
+                .lineToLinearHeading(new Pose2d(-20, 20, Math.toRadians(90)))
+                .build();
 
 
         bot.setPoseEstimate(scoreFirst.start());
@@ -80,13 +83,19 @@ public class RRAuto extends LinearOpMode {
                     break;
                 case SCORING_FIRST:
                     if (launched == 3) {
-                        state = State.IDLE;
+                        state = State.PREP;
+                        drive.followTrajectorySequenceAsync(prep);
                     } else {
                         synchronized (lock) {
                             bot.launchAndSort();
                             wait();
                             launched++;
                         }
+                    }
+                    break;
+                case PREP:
+                    if (!drive.isBusy()) {
+                        state = State.IDLE;
                     }
                     break;
                 case IDLE:
