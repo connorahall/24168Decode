@@ -7,6 +7,7 @@ import androidx.annotation.Nullable;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -27,6 +28,7 @@ public class Robot {
     DcMotorEx launcher, intake, FL, FR, BL, BR;
     Servo flipper;
     CRServo sorter;
+    RevColorSensorV3 sensor;
     double flipperTime;
     boolean flipping;
     double spinningTime;
@@ -38,9 +40,14 @@ public class Robot {
     public enum OpMode {
         AUTO, TELEOP
     }
+    public enum Color {
+        PURPLE, GREEN, EMPTY
+    }
+    Color[] drum = {Color.EMPTY, Color.EMPTY, Color.EMPTY};
+
     OpMode mode = OpMode.AUTO;
 
-    public Robot(SampleMecanumDrive drive, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter) {
+    public Robot(SampleMecanumDrive drive, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, RevColorSensorV3 sensor) {
         this.launcher = launcher;
         this.intake = intake;
         this.FL = FL;
@@ -49,6 +56,7 @@ public class Robot {
         this.BR = BR;
         this.flipper = flipper;
         this.sorter = sorter;
+        this.sensor = sensor;
 
         launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
@@ -68,14 +76,14 @@ public class Robot {
     }
 
     // auto constructor
-    public Robot(SampleMecanumDrive drive, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, Pose2d startingPose) {
-        this(drive, launcher, intake, FL, FR, BL, BR, flipper, sorter);
+    public Robot(SampleMecanumDrive drive, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, RevColorSensorV3 sensor, Pose2d startingPose) {
+        this(drive, launcher, intake, FL, FR, BL, BR, flipper, sorter, sensor);
         drive.setPoseEstimate(startingPose);
     }
 
     // teleop constructor
-    public Robot(SampleMecanumDrive drive, Gamepad gamepad, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, Robot.OpMode mode) {
-        this(drive, launcher, intake, FL, FR, BL, BR, flipper, sorter);
+    public Robot(SampleMecanumDrive drive, Gamepad gamepad, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, RevColorSensorV3 sensor, Robot.OpMode mode) {
+        this(drive, launcher, intake, FL, FR, BL, BR, flipper, sorter, sensor);
         this.mode = mode;
         gamepad1 = gamepad;
     }
@@ -83,7 +91,9 @@ public class Robot {
 
     public void update() throws InterruptedException {
 
-        System.out.println(launcher.getVelocity(AngleUnit.DEGREES));
+//        System.out.println("0: " + drum[0] + " 1: " + drum[1] + " 2: " + drum[2]);
+//        System.out.println(readColor());
+//        System.out.println(launcher.getVelocity(AngleUnit.DEGREES));
 
         if (flippingAndSpinning) {
             launchingAndSorting();
@@ -136,12 +146,14 @@ public class Robot {
         intake.setPower(0);
         sorter.setPower(0);
         flipper.setPosition(0);
+
     }
     public void setRestState() {
         launcher.setPower(0);
         sorter.setPower(0);
         flipper.setPosition(0);
         intake.setPower(0);
+        drum[0] = readColor();
     }
     public void setLauncherVelocity(int vel) {
         launcher.setVelocity(vel, AngleUnit.DEGREES);
@@ -160,6 +172,7 @@ public class Robot {
         if (flipperTime + 500 < timer.milliseconds()) {
             flipper.setPosition(0);
             flipping = false;
+            drum[0] = readColor();
         }
     }
     public void moveSorter() {
@@ -167,12 +180,17 @@ public class Robot {
             spinning = true;
             spinningTime = timer.milliseconds();
             sorter.setPower(-1);
+            Color temp = drum[0];
+            drum[0] = drum[1];
+            drum[1] = drum[2];
+            drum[2] = temp;
         }
     }
     private void sorting() {
         if (spinningTime + 500 < timer.milliseconds()) {
             sorter.setPower(0);
             spinning = false;
+            drum[0] = readColor();
         }
     }
     public void moveSorterReverse() {
@@ -180,6 +198,10 @@ public class Robot {
             spinning = true;
             spinningTime = timer.milliseconds();
             sorter.setPower(1);
+            Color temp = drum[0];
+            drum[0] = drum[2];
+            drum[2] = drum[1];
+            drum[1] = temp;
         }
 
     }
@@ -197,6 +219,17 @@ public class Robot {
                 flippingAndSpinning = false;
                 notify();
             }
+        }
+    }
+    public Color readColor() {
+        if (sensor.green() < 100 && sensor.blue() < 100) {
+            return Color.EMPTY;
+        }
+        else if (sensor.green() > sensor.blue()) {
+            return Color.GREEN;
+        }
+        else {
+            return Color.PURPLE;
         }
     }
 
