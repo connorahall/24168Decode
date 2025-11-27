@@ -2,29 +2,26 @@ package org.firstinspires.ftc.teamcode;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
-import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuilder;
 
-@Autonomous(name = "RRAutoRed")
-public class RRAutoRed extends LinearOpMode {
+@Autonomous(name = "RRAuto")
+public class RRAuto extends LinearOpMode {
 
+    // different states used to control logic flow in loop
     enum State {
         IDLE, SCORE_FIRST, SCORING_FIRST, PREP
     }
 
+    // bot object that operates the robot
     Robot bot;
-//    final Object lock = bot.getLock();
+    // used to sync timing of flipper and sorter with bot
     Object lock;
 
 
@@ -40,35 +37,44 @@ public class RRAutoRed extends LinearOpMode {
         CRServo sorter = hardwareMap.get(CRServo.class, "sorter");
         RevColorSensorV3 sensor = hardwareMap.get(RevColorSensorV3.class, "sensor");
 
-
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
+        // pass all devices to bot because Robot doesn't have access to hardwareMap :(
         bot = new Robot(drive, launcher, intake, FL, FR, BL, BR, flipper, sorter, sensor);
         lock = bot.getLock();
 
-//
-//        launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-//
-//        drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-//        drive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        // uses the camera and sets the team to the OPPOSITE of the goal that it can see
+        // also sets initial pose
+        bot.setTeam(bot.identifyMyTeam());
 
+        // uses the same trajectories but instantiates them differently depending on our team
+        TrajectorySequence scoreFirst, prep;
 
-        TrajectorySequence scoreFirst = drive.trajectorySequenceBuilder(new Pose2d(-50, 50, Math.toRadians(-40)))
-                .lineToLinearHeading(new Pose2d(-20, 18, Math.toRadians(140)))
-                .build();
-        TrajectorySequence prep = drive.trajectorySequenceBuilder(scoreFirst.end())
-                .lineToLinearHeading(new Pose2d(-20, 20, Math.toRadians(90)))
-                .build();
+        if (bot.getTeam() == Robot.Color.BLUE) {
+            scoreFirst = drive.trajectorySequenceBuilder(new Pose2d(-50, -50, Math.toRadians(50)))
+                    .lineToLinearHeading(new Pose2d(-20, -18, Math.toRadians(230)))
+                    .build();
 
+            prep = drive.trajectorySequenceBuilder(scoreFirst.end())
+                    .lineToLinearHeading(new Pose2d(-20, -20, Math.toRadians(270)))
+                    .build();
+        } else {
+             scoreFirst = drive.trajectorySequenceBuilder(new Pose2d(-50, 50, Math.toRadians(-40)))
+                    .lineToLinearHeading(new Pose2d(-20, 18, Math.toRadians(140)))
+                    .build();
+             prep = drive.trajectorySequenceBuilder(scoreFirst.end())
+                    .lineToLinearHeading(new Pose2d(-20, 20, Math.toRadians(90)))
+                    .build();
+        }
 
-        bot.setPoseEstimate(scoreFirst.start());
+        bot.setInitialState();
 
         telemetry.addData("initialization:", "is a success");
+        telemetry.addData("WE ARE: ", bot.getTeam());
         telemetry.update();
 
         waitForStart();
 
-        bot.setInitialState();
         bot.setLauncherVelocity(230);
 
         drive.followTrajectorySequenceAsync(scoreFirst);
@@ -85,6 +91,7 @@ public class RRAutoRed extends LinearOpMode {
                     }
                     break;
                 case SCORING_FIRST:
+                    bot.autoPowerLauncher();
                     if (launched == 3) {
                         state = State.PREP;
                         drive.followTrajectorySequenceAsync(prep);
