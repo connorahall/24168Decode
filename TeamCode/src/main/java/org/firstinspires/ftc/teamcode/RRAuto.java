@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
@@ -27,25 +28,20 @@ public class RRAuto extends LinearOpMode {
 
     public void runOpMode() throws InterruptedException {
 
-        DcMotorEx launcher = hardwareMap.get(DcMotorEx.class, "launcher");
-        DcMotorEx intake = hardwareMap.get(DcMotorEx.class, "intake");
-        DcMotorEx FL = hardwareMap.get(DcMotorEx.class, "FL");
-        DcMotorEx FR = hardwareMap.get(DcMotorEx.class, "FR");
-        DcMotorEx BL = hardwareMap.get(DcMotorEx.class, "BL");
-        DcMotorEx BR = hardwareMap.get(DcMotorEx.class, "BR");
-        Servo flipper = hardwareMap.get(Servo.class, "flipper");
-        CRServo sorter = hardwareMap.get(CRServo.class, "sorter");
-        RevColorSensorV3 sensor = hardwareMap.get(RevColorSensorV3.class, "sensor");
 
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
-        // pass all devices to bot because Robot doesn't have access to hardwareMap :(
-        bot = new Robot(drive, launcher, intake, FL, FR, BL, BR, flipper, sorter, sensor);
+
+        bot = new Robot(drive, hardwareMap);
         lock = bot.getLock();
+
 
         // uses the camera and sets the team to the OPPOSITE of the goal that it can see
         // also sets initial pose
-        bot.setTeam(bot.identifyMyTeam());
+        for (int i = 0; i < 8; i++) {
+            bot.setTeam(bot.identifyMyTeamAuto());
+            sleep(100);
+        }
 
         // uses the same trajectories but instantiates them differently depending on our team
         TrajectorySequence scoreFirst, prep;
@@ -70,7 +66,7 @@ public class RRAuto extends LinearOpMode {
         bot.setInitialState();
 
         telemetry.addData("initialization:", "is a success");
-        telemetry.addData("WE ARE: ", bot.getTeam());
+        telemetry.addData("WE ARE", bot.getTeam());
         telemetry.update();
 
         waitForStart();

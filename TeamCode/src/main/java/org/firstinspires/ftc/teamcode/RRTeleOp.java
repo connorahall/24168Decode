@@ -45,31 +45,20 @@ public class RRTeleOp extends LinearOpMode {
 
     ElapsedTime game;
     enum State {
-        INTAKE, LAUNCH
+        INTAKE, LAUNCH, OFF
     }
-    State mode = State.LAUNCH;
-    public static int vel;
+    State mode = State.OFF;
+
 
     Robot bot;
 
     @Override
     public void runOpMode() throws InterruptedException {
 
-
-        DcMotorEx launcher = hardwareMap.get(DcMotorEx.class, "launcher");
-        DcMotorEx intake = hardwareMap.get(DcMotorEx.class, "intake");
-        DcMotorEx FL = hardwareMap.get(DcMotorEx.class, "FL");
-        DcMotorEx FR = hardwareMap.get(DcMotorEx.class, "FR");
-        DcMotorEx BL = hardwareMap.get(DcMotorEx.class, "BL");
-        DcMotorEx BR = hardwareMap.get(DcMotorEx.class, "BR");
-        Servo flipper = hardwareMap.get(Servo.class, "flipper");
-        CRServo sorter = hardwareMap.get(CRServo.class, "sorter");
-        RevColorSensorV3 sensor = hardwareMap.get(RevColorSensorV3.class, "sensor");
-
-
         drive = new SampleMecanumDrive(hardwareMap);
 
-        bot = new Robot(drive, gamepad1, launcher, intake, FL, FR, BL, BR, flipper, sorter, sensor, Robot.OpMode.TELEOP);
+        bot = new Robot(drive, gamepad1, hardwareMap, Robot.OpMode.TELEOP);
+        bot.setTeam(Robot.Color.EMPTY);
 
         bot.getDrive().setPoseEstimate(new Pose2d(0, 0, Math.toRadians(90)));
 
@@ -86,14 +75,18 @@ public class RRTeleOp extends LinearOpMode {
 
 
             if (gamepad1.dpad_up) {
+//                bot.getVisionPortal().resumeStreaming();
                 mode = State.LAUNCH;
 //                bot.setLauncherVelocity(vel);
                 bot.setIntakePower(-0.5);
             } if (gamepad1.dpad_down) {
+//                bot.getVisionPortal().stopStreaming();
                 mode = State.INTAKE;
                 bot.setLauncherVelocity(0);
                 bot.setIntakePower(1);
             } if (gamepad1.dpad_right) {
+//                bot.getVisionPortal().stopStreaming();
+                mode = State.OFF;
                 bot.setLauncherVelocity(0);
                 bot.setIntakePower(0);
             }
@@ -101,25 +94,32 @@ public class RRTeleOp extends LinearOpMode {
             // adjust power based on position
             if (mode == State.LAUNCH) {
                 bot.autoPowerLauncher();
+            } else {
+                bot.setLauncherVelocity(0);
             }
 
             // put a ball into launcher
             if (gamepad1.right_trigger > 0.5) {
-                bot.launch();
+                if (bot.getTeam() == Robot.Color.EMPTY) {
+                    bot.setTeam(bot.identifyMyTeamTeleOp());
+                }
+                else {
+                    bot.launch();
+                }
             }
 
             // spin drum sorter
             if (gamepad1.left_bumper) {
-                bot.moveSorter();
+                bot.moveSorter(Robot.Color.GREEN);
             }
             if (gamepad1.right_bumper) {
-                bot.moveSorterReverse();
+                bot.moveSorter(Robot.Color.PURPLE);
             }
 
             bot.update();
         }
 
-        bot.visionPortal.close();
+        bot.getVisionPortal().close();
     }
 
 

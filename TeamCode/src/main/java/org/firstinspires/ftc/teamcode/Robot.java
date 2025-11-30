@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode;
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad1;
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
 
+import static java.lang.Thread.sleep;
+
 import androidx.annotation.Nullable;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
@@ -13,6 +15,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareDevice;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -39,6 +42,7 @@ public class Robot {
     Servo flipper;
     CRServo sorter;
     RevColorSensorV3 sensor;
+    WebcamName camera;
     double flipperTime;
     boolean flipping;
     double spinningTime;
@@ -47,8 +51,8 @@ public class Robot {
     double speedFactor;
     double cameraTime = 0;
 
-    int goalX = 66;
-    int goalY = 66;
+    int goalX = 64;
+    int goalY = 64;
     ElapsedTime timer;
     private final Object lock;
 
@@ -64,7 +68,7 @@ public class Robot {
     private AprilTagProcessor aprilTag;
 
 
-    public VisionPortal visionPortal;
+    private VisionPortal visionPortal;
 
     private HashMap<Integer, Integer> launchTable;
 
@@ -75,20 +79,22 @@ public class Robot {
         PURPLE, GREEN, BLUE, RED, EMPTY
     }
     Color[] drum = {Color.EMPTY, Color.EMPTY, Color.EMPTY};
+    Color[] motif = {Color.GREEN, Color.PURPLE, Color.PURPLE};
     Color team = Color.RED;
 
     OpMode mode = OpMode.AUTO;
 
-    public Robot(SampleMecanumDrive drive, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, RevColorSensorV3 sensor) {
-        this.launcher = launcher;
-        this.intake = intake;
-        this.FL = FL;
-        this.FR = FR;
-        this.BL = BL;
-        this.BR = BR;
-        this.flipper = flipper;
-        this.sorter = sorter;
-        this.sensor = sensor;
+    public Robot(SampleMecanumDrive drive, HardwareMap hardwareMap) throws InterruptedException {
+        launcher = hardwareMap.get(DcMotorEx.class, "launcher");
+        intake = hardwareMap.get(DcMotorEx.class, "intake");
+        FL = hardwareMap.get(DcMotorEx.class, "FL");
+        FR = hardwareMap.get(DcMotorEx.class, "FR");
+        BL = hardwareMap.get(DcMotorEx.class, "BL");
+        BR = hardwareMap.get(DcMotorEx.class, "BR");
+        flipper = hardwareMap.get(Servo.class, "flipper");
+        sorter = hardwareMap.get(CRServo.class, "sorter");
+        sensor = hardwareMap.get(RevColorSensorV3.class, "sensor");
+        camera = hardwareMap.get(WebcamName.class, "Webcam 1");
 
         launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
@@ -111,17 +117,20 @@ public class Robot {
         double launchTablePrecision = 1.;
         launchTable = new HashMap<>((int) (500 / launchTablePrecision));
         launchTable = generateLaunchTable(launchTablePrecision);
+
+        // let everything get initialized
+        sleep(1000);
     }
 
     // auto constructor
-    public Robot(SampleMecanumDrive drive, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, RevColorSensorV3 sensor, Pose2d startingPose) {
-        this(drive, launcher, intake, FL, FR, BL, BR, flipper, sorter, sensor);
+    public Robot(SampleMecanumDrive drive, HardwareMap hardwareMap, Pose2d startingPose) throws InterruptedException {
+        this(drive, hardwareMap);
         drive.setPoseEstimate(startingPose);
     }
 
     // teleop constructor
-    public Robot(SampleMecanumDrive drive, Gamepad gamepad, DcMotorEx launcher, DcMotorEx intake, DcMotorEx FL, DcMotorEx FR, DcMotorEx BL, DcMotorEx BR, Servo flipper, CRServo sorter, RevColorSensorV3 sensor, Robot.OpMode mode) {
-        this(drive, launcher, intake, FL, FR, BL, BR, flipper, sorter, sensor);
+    public Robot(SampleMecanumDrive drive, Gamepad gamepad, HardwareMap hardwareMap, Robot.OpMode mode) throws InterruptedException {
+        this(drive, hardwareMap);
         this.mode = mode;
         gamepad1 = gamepad;
     }
@@ -151,6 +160,9 @@ public class Robot {
         }
 
         cameraTelemetryAtInterval();
+        System.out.println(drum[0] + " " + drum[1] + " " + drum[2]);
+
+//        System.out.println(headingDeviationFromGoal());
 
         if (mode == OpMode.TELEOP) {
 
@@ -189,7 +201,7 @@ public class Robot {
         }
     }
     public void autoPowerLauncher() {
-        launcher.setVelocity(getAutoPower());
+        launcher.setVelocity(getAutoPower(), AngleUnit.DEGREES);
     }
 
     private void initAprilTag() {
@@ -227,11 +239,12 @@ public class Robot {
         VisionPortal.Builder builder = new VisionPortal.Builder();
 
         // Set the camera (webcam vs. built-in RC phone camera).
-        if (USE_WEBCAM) {
-            builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
-        } else {
-            builder.setCamera(BuiltinCameraDirection.BACK);
-        }
+//        if (USE_WEBCAM) {
+        builder.setCamera(camera);
+//        }
+//        else {
+//            builder.setCamera(BuiltinCameraDirection.BACK);
+//        }
 
         // Choose a camera resolution. Not all cameras support all resolutions.
         //builder.setCameraResolution(new Size(640, 480));
@@ -283,11 +296,29 @@ public class Robot {
 //                    robotPose = to2d(detection.robotPose);
                     drive.setPoseEstimate(new Pose2d(detection.robotPose.getPosition().x, detection.robotPose.getPosition().y, detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS) + Math.toRadians(90)));
                     return detection;
+                } else {
+                    if (detection.id == 21) {
+                        motif[0] = Color.GREEN;
+                        motif[1] = Color.PURPLE;
+                        motif[2] = Color.PURPLE;
+                    }
+                    else if (detection.id == 22) {
+                        motif[0] = Color.PURPLE;
+                        motif[1] = Color.GREEN;
+                        motif[2] = Color.PURPLE;
+                    }
+                    else if (detection.id == 23) {
+                        motif[0] = Color.PURPLE;
+                        motif[1] = Color.PURPLE;
+                        motif[2] = Color.GREEN;
+                    }
                 }
-            } else {
+
+            }
+//            else {
 //                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
 //                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
-            }
+//            }
         }   // end for() loop
         return null;
         // Add "key" information to telemetry
@@ -296,18 +327,45 @@ public class Robot {
 
     }
 
-    public Color identifyMyTeam() {
+    public Color identifyMyTeamAuto() {
         AprilTagDetection detection = telemetryAprilTag();
         if (detection != null) {
             // if I can see blue goal, I am red
             if (detection.id == 20) {
+                System.out.println("actually red!");
                 return Color.RED;
             }
             // if I can see red goal, I am blue
             else if (detection.id == 24) {
+                System.out.println("actually blue!");
                 return Color.BLUE;
             }
         }
+
+        System.out.println("default");
+        // default is red
+        return Color.RED;
+    }
+    public Color identifyMyTeamTeleOp() {
+        flipping = true;
+        flipperTime = timer.milliseconds();
+        drum[0] = readColor();
+        AprilTagDetection detection = telemetryAprilTag();
+        if (detection != null) {
+            // if I can see blue goal, I am red
+            if (detection.id == 20) {
+                System.out.println("actually blue!");
+
+                return Color.BLUE;
+            }
+            // if I can see red goal, I am blue
+            else if (detection.id == 24) {
+                System.out.println("actually red!");
+                return Color.RED;
+            }
+        }
+
+        System.out.println("default");
         // default is red
         return Color.RED;
     }
@@ -315,10 +373,10 @@ public class Robot {
     public void cameraTelemetryAtInterval() {
         // run every second
         if (cameraTime + 1000 < timer.milliseconds()) {
-            visionPortal.resumeLiveView();
+//            visionPortal.resumeLiveView();
             cameraTime = timer.milliseconds();
             telemetryAprilTag();
-            visionPortal.stopLiveView();
+//            visionPortal.stopLiveView();
         }
     }
 
@@ -329,10 +387,10 @@ public class Robot {
         // generate table
         // Map distance to the required angle
         double distance;
-        for (int i = 0; velToDistance(i) < 250; i+=(int)precision) {
+        for (int i = 0; i < 500; i+=(int)precision) {
             distance = velToDistance(i);
             ret.put((int)Math.round(distance), i);
-            System.out.println((int)Math.round(distance) + " " + i);
+//            System.out.println((int)Math.round(distance) + " " + i);
         }
 
         return ret;
@@ -368,15 +426,17 @@ public class Robot {
             return Math.sqrt(Math.pow(x+goalX, 2) + Math.pow(y-goalY, 2));
         return Math.sqrt(Math.pow(x+goalX, 2) + Math.pow(y+goalY, 2));
     }
-    private double headingDeviationFromGoal() {
+    private double headingDeviationFromGoalRadians() {
         double x = drive.getPoseEstimate().getX();
         double y = drive.getPoseEstimate().getY();
         double heading = drive.getPoseEstimate().getHeading();
+//        System.out.println(heading);
 
         if (team == Color.BLUE) {
-            return heading - (Math.atan2(y + goalY, x + goalX) + 180);
+            return (Math.atan2(goalY + y, x + goalX) + Math.PI - heading);
         } else {
-            return heading - (Math.atan2(y - goalY, x + goalX) + 180);
+//            System.out.println(Math.toDegrees(Math.atan2(y - goalY, x + goalX)) + 180 - Math.toDegrees(heading));
+            return (Math.atan2(y - goalY, x + goalX) + Math.PI - heading);
         }
     }
 
@@ -385,6 +445,9 @@ public class Robot {
     }
     public Color getTeam() {
         return team;
+    }
+    public VisionPortal getVisionPortal() {
+        return visionPortal;
     }
 
     public SampleMecanumDrive getDrive() {
@@ -429,38 +492,50 @@ public class Robot {
         if (flipperTime + 500 < timer.milliseconds()) {
             flipper.setPosition(0);
             flipping = false;
-            drum[0] = readColor();
+            drum[0] = Color.EMPTY;
         }
     }
-    public void moveSorter() {
+    public void moveSorter(Color color) {
         if (!spinning) {
-            spinning = true;
-            spinningTime = timer.milliseconds();
-            sorter.setPower(-1);
-            Color temp = drum[0];
-            drum[0] = drum[1];
-            drum[1] = drum[2];
-            drum[2] = temp;
+            if (color == drum[0]) {
+                return;
+            } else if (color == drum[1]) {
+                spinning = true;
+                spinningTime = timer.milliseconds();
+                sorter.setPower(-1);
+                shiftDrum();
+            } else if (color == drum[2]) {
+                spinning = true;
+                spinningTime = timer.milliseconds();
+                sorter.setPower(1);
+                shiftDrumReverse();
+            } else {
+                spinning = true;
+                spinningTime = timer.milliseconds();
+                sorter.setPower(-1);
+                shiftDrum();
+            }
         }
+    }
+    private void shiftDrum() {
+        Color temp = drum[0];
+        drum[0] = drum[1];
+        drum[1] = drum[2];
+        drum[2] = temp;
+    }
+    private void shiftDrumReverse() {
+        Color temp = drum[0];
+        drum[0] = drum[2];
+        drum[2] = drum[1];
+        drum[1] = temp;
     }
     private void sorting() {
         if (spinningTime + 500 < timer.milliseconds()) {
             sorter.setPower(0);
             spinning = false;
-            drum[0] = readColor();
+            if (drum[0] == Color.EMPTY)
+                drum[0] = readColor();
         }
-    }
-    public void moveSorterReverse() {
-        if (!spinning) {
-            spinning = true;
-            spinningTime = timer.milliseconds();
-            sorter.setPower(1);
-            Color temp = drum[0];
-            drum[0] = drum[2];
-            drum[2] = drum[1];
-            drum[1] = temp;
-        }
-
     }
     public void launchAndSort() {
         if (!flippingAndSpinning) {
@@ -471,15 +546,27 @@ public class Robot {
     private void launchingAndSorting() {
         synchronized (lock) {
             if (!spinning && flipperTime + 1000 < timer.milliseconds()) {
-                moveSorter();
+                shiftDrum();
             } else if (spinning && spinningTime + 500 < timer.milliseconds()) {
                 flippingAndSpinning = false;
                 notify();
             }
         }
     }
+//    public void launchByColor(Color color) {
+//        if (flipping || spinning) {
+//            return;
+//        }
+//        if (color == drum[0]) {
+//            launch();
+//        } else if (color == drum[1]) {
+//            moveSorter();
+//        } else if (color == drum[2]) {
+//            moveSorterReverse();
+//        }
+//    }
     public Color readColor() {
-        if (sensor.green() < 100 && sensor.blue() < 100) {
+        if (sensor.green() < 50 && sensor.blue() < 50) {
             return Color.EMPTY;
         }
         else if (sensor.green() > sensor.blue()) {
