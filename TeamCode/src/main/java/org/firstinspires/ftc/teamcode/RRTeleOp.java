@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
 import static java.lang.Thread.sleep;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
@@ -16,6 +17,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -51,6 +53,7 @@ public class RRTeleOp extends LinearOpMode {
 
 
     Robot bot;
+    public static double kp, ki, kd, target;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -68,11 +71,24 @@ public class RRTeleOp extends LinearOpMode {
 
         bot.setInitialState();
 
+
+        FtcDashboard dashboard = FtcDashboard.getInstance();
+        Telemetry dashboardTelemetry = dashboard.getTelemetry();
+
         if (isStopRequested()) return;
         while (opModeIsActive() && !isStopRequested()) {
 
             telemetry.update();
+//            bot.getSorterPID().setKp(kp);
+//            bot.getSorterPID().setKi(ki);
+//            bot.getSorterPID().setKd(kd);
+//            bot.getSorterPID().setTarget((int)target);
+            bot.getSorterPID().update();
 
+
+            dashboardTelemetry.addData("target", bot.getSorterPID().getTarget());
+            dashboardTelemetry.addData("actual", bot.getSorterPID().getPosition());
+            dashboardTelemetry.update();
 
             if (gamepad1.dpad_up) {
 //                bot.getVisionPortal().resumeStreaming();
@@ -102,18 +118,24 @@ public class RRTeleOp extends LinearOpMode {
             if (gamepad1.right_trigger > 0.5) {
                 if (bot.getTeam() == Robot.Color.EMPTY) {
                     bot.setTeam(bot.identifyMyTeamTeleOp());
+                    telemetry.addData("We are", bot.getTeam());
+                    telemetry.update();
                 }
-                else {
+                else if (gamepad1.dpad_left) {
                     bot.launch();
+                } else {
+                    bot.launchAndSort();
                 }
             }
 
             // spin drum sorter
             if (gamepad1.left_bumper) {
-                bot.moveSorter(Robot.Color.GREEN);
+//                bot.moveSorter(Robot.Color.GREEN);
+                bot.moveSorterCCW();
             }
             if (gamepad1.right_bumper) {
-                bot.moveSorter(Robot.Color.PURPLE);
+//                bot.moveSorter(Robot.Color.PURPLE);
+                bot.moveSorterCW();
             }
 
             bot.update();

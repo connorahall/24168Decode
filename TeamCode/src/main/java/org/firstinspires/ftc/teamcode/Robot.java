@@ -26,6 +26,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.util.Encoder;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -38,11 +39,12 @@ import java.util.Map;
 public class Robot {
     SampleMecanumDrive drive;
     Gamepad gamepad1;
-    DcMotorEx launcher, intake, FL, FR, BL, BR;
+    DcMotorEx launcher, intake, FL, FR, BL, BR, sorter;
     Servo flipper;
-    CRServo sorter;
     RevColorSensorV3 sensor;
     WebcamName camera;
+    Encoder sorterEncoder;
+    CustomPID sorterPID;
     double flipperTime;
     boolean flipping;
     double spinningTime;
@@ -92,9 +94,11 @@ public class Robot {
         BL = hardwareMap.get(DcMotorEx.class, "BL");
         BR = hardwareMap.get(DcMotorEx.class, "BR");
         flipper = hardwareMap.get(Servo.class, "flipper");
-        sorter = hardwareMap.get(CRServo.class, "sorter");
+        sorter = hardwareMap.get(DcMotorEx.class, "sorter");
         sensor = hardwareMap.get(RevColorSensorV3.class, "sensor");
         camera = hardwareMap.get(WebcamName.class, "Webcam 1");
+        sorterEncoder = new Encoder(hardwareMap.get(DcMotorEx.class, "sorter"));
+        sorterPID = new CustomPID(sorter, 0.0004, 0, 0, 0);
 
         launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
@@ -138,6 +142,7 @@ public class Robot {
 
     public void update() throws InterruptedException {
 
+
 //        telemetryAprilTag();
 
         // Push telemetry to the Driver Station.
@@ -145,9 +150,6 @@ public class Robot {
         drive.update();
 
 
-//        System.out.println("0: " + drum[0] + " 1: " + drum[1] + " 2: " + drum[2]);
-//        System.out.println(readColor());
-//        System.out.println(launcher.getVelocity(AngleUnit.DEGREES));
 
         if (flippingAndSpinning) {
             launchingAndSorting();
@@ -159,10 +161,8 @@ public class Robot {
             sorting();
         }
 
-        cameraTelemetryAtInterval();
-        System.out.println(drum[0] + " " + drum[1] + " " + drum[2]);
-
-//        System.out.println(headingDeviationFromGoal());
+//        cameraTelemetryAtInterval();
+        cameraTelemetryWhenStill();
 
         if (mode == OpMode.TELEOP) {
 
@@ -172,25 +172,35 @@ public class Robot {
                 speedFactor = 0.6;
 
             if (!(spinning || gamepad1.left_bumper || gamepad1.right_bumper)) {
-                sorter.setPower(0.15 * gamepad1.right_stick_y);
+                sorterPID.setTarget(sorterPID.getTarget() + (int)gamepad1.right_stick_y*10);
             }
 
             Vector2d input;
-            input = new Vector2d(-gamepad1.left_stick_y * speedFactor, -gamepad1.left_stick_x * speedFactor)
-                    .rotated(-(drive.getPoseEstimate().getHeading()-Math.toRadians(90)));
+            if (team == Color.BLUE) {
+                input = new Vector2d(-gamepad1.left_stick_y * speedFactor, -gamepad1.left_stick_x * speedFactor)
+                        .rotated(-(drive.getPoseEstimate().getHeading() - Math.toRadians(270)));
+            } else {
+                input = new Vector2d(-gamepad1.left_stick_y * speedFactor, -gamepad1.left_stick_x * speedFactor)
+                        .rotated(-(drive.getPoseEstimate().getHeading() - Math.toRadians(90)));
+            }
 
             drive.setWeightedDrivePower(new Pose2d(input.getX(), input.getY(), -gamepad1.right_stick_x * speedFactor));
 
-            if (gamepad1.options){
+            if (gamepad1.options && team == Color.BLUE){
+                drive.setPoseEstimate(new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), 270));
+            } else if (gamepad1.options && team == Color.RED) {
                 drive.setPoseEstimate(new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), 90));
+
             }
 
+
+            sorterPID.update();
             drive.update();
         }
 
     }
 
-    private int getAutoPower() {
+    public int getAutoPower() {
         int distance = (int) Math.round(distanceFromGoal());
         try {
             return launchTable.get(distance) - ((distance - 72) * 3);
@@ -372,11 +382,19 @@ public class Robot {
 
     public void cameraTelemetryAtInterval() {
         // run every second
+        cameraTelemetryWhenStill();
         if (cameraTime + 1000 < timer.milliseconds()) {
 //            visionPortal.resumeLiveView();
             cameraTime = timer.milliseconds();
             telemetryAprilTag();
 //            visionPortal.stopLiveView();
+        }
+    }
+    public void cameraTelemetryWhenStill() {
+        if (drive.getPoseVelocity() != null) {
+            if (drive.getPoseVelocity().getX() == 0 && drive.getPoseVelocity().getY() == 0 && drive.getPoseVelocity().getHeading() == 0) {
+                telemetryAprilTag();
+            }
         }
     }
 
@@ -430,12 +448,10 @@ public class Robot {
         double x = drive.getPoseEstimate().getX();
         double y = drive.getPoseEstimate().getY();
         double heading = drive.getPoseEstimate().getHeading();
-//        System.out.println(heading);
 
         if (team == Color.BLUE) {
             return (Math.atan2(goalY + y, x + goalX) + Math.PI - heading);
         } else {
-//            System.out.println(Math.toDegrees(Math.atan2(y - goalY, x + goalX)) + 180 - Math.toDegrees(heading));
             return (Math.atan2(y - goalY, x + goalX) + Math.PI - heading);
         }
     }
@@ -495,25 +511,36 @@ public class Robot {
             drum[0] = Color.EMPTY;
         }
     }
+    public void moveSorterCCW() {
+        if (!spinning) {
+            sorterPID.setTarget(sorterPID.getTarget() + 2720);
+            spinningTime = timer.milliseconds();
+            System.out.println("um what");
+//            System.out.println(spinningTime);
+        }
+        spinning = true;
+//        spinningTime = timer.milliseconds();
+//        sorter.setPower(-1);
+        shiftDrum();
+    }
+    public void moveSorterCW() {
+        if (!spinning) {
+            sorterPID.setTarget(sorterPID.getTarget() - 2720);
+            spinningTime = timer.milliseconds();
+        }
+        spinning = true;
+        shiftDrumReverse();
+    }
     public void moveSorter(Color color) {
         if (!spinning) {
             if (color == drum[0]) {
                 return;
             } else if (color == drum[1]) {
-                spinning = true;
-                spinningTime = timer.milliseconds();
-                sorter.setPower(-1);
-                shiftDrum();
+                moveSorterCCW();
             } else if (color == drum[2]) {
-                spinning = true;
-                spinningTime = timer.milliseconds();
-                sorter.setPower(1);
-                shiftDrumReverse();
+                moveSorterCW();
             } else {
-                spinning = true;
-                spinningTime = timer.milliseconds();
-                sorter.setPower(-1);
-                shiftDrum();
+                moveSorterCCW();
             }
         }
     }
@@ -530,27 +557,34 @@ public class Robot {
         drum[1] = temp;
     }
     private void sorting() {
-        if (spinningTime + 500 < timer.milliseconds()) {
-            sorter.setPower(0);
+        if (atSorterPosition() || spinningTime + 500 < timer.milliseconds()) {
+
             spinning = false;
-            if (drum[0] == Color.EMPTY)
-                drum[0] = readColor();
+//            if (drum[0] == Color.EMPTY)
+//                drum[0] = readColor();
         }
     }
+    private boolean atSorterPosition() {
+        return Math.abs(sorterPID.getTarget() - sorterPID.getPosition()) < 100;
+    }
     public void launchAndSort() {
+//        System.out.println(flipperTime + 900 < timer.milliseconds());
         if (!flippingAndSpinning) {
             launch();
             flippingAndSpinning = true;
+            flipperTime = timer.milliseconds();
         }
     }
+    public boolean launched() {
+        return !spinning && flipperTime + 900 < timer.milliseconds();
+    }
     private void launchingAndSorting() {
-        synchronized (lock) {
-            if (!spinning && flipperTime + 1000 < timer.milliseconds()) {
-                shiftDrum();
-            } else if (spinning && spinningTime + 500 < timer.milliseconds()) {
-                flippingAndSpinning = false;
-                notify();
-            }
+        if (!spinning && flipperTime + 900 < timer.milliseconds()) {
+            moveSorterCCW();
+//            System.out.println("?");
+        } else if (spinning && (spinningTime + 500 < timer.milliseconds() || atSorterPosition())) {
+            flippingAndSpinning = false;
+            System.out.println("hereeeeeeeeeeeee");
         }
     }
 //    public void launchByColor(Color color) {
@@ -575,6 +609,10 @@ public class Robot {
         else {
             return Color.PURPLE;
         }
+    }
+
+    public CustomPID getSorterPID() {
+        return sorterPID;
     }
 
 

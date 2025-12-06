@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -8,7 +9,9 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
@@ -77,9 +80,18 @@ public class RRAuto extends LinearOpMode {
         State state = State.SCORE_FIRST;
         int launched = 0;
 
+        FtcDashboard dashboard = FtcDashboard.getInstance();
+        Telemetry dashboardTelemetry = dashboard.getTelemetry();
+
+
         if(isStopRequested()) return;
 
         while(opModeIsActive() && !isStopRequested()) {
+            bot.cameraTelemetryWhenStill();
+            bot.getSorterPID().update();
+            dashboardTelemetry.addData("target", bot.getSorterPID().getTarget());
+            dashboardTelemetry.addData("actual", bot.getSorterPID().getPosition());
+            dashboardTelemetry.update();
             switch(state) {
                 case SCORE_FIRST:
                     if (!drive.isBusy()) {
@@ -92,10 +104,12 @@ public class RRAuto extends LinearOpMode {
                         state = State.PREP;
                         drive.followTrajectorySequenceAsync(prep);
                     } else {
-                        synchronized (lock) {
+                        if (Math.abs(bot.launcher.getVelocity(AngleUnit.DEGREES) - bot.getAutoPower()) < 5) {
+//                            System.out.println(bot.launched());
                             bot.launchAndSort();
-                            wait();
-                            launched++;
+                            if (bot.launched()) {
+                                launched++;
+                            }
                         }
                     }
                     break;
