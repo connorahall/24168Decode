@@ -94,12 +94,12 @@ public class RRTeleOp extends LinearOpMode {
 //                bot.getVisionPortal().resumeStreaming();
                 mode = State.LAUNCH;
 //                bot.setLauncherVelocity(vel);
-                bot.setIntakePower(-0.5);
+//                bot.setIntakePower(-0.5);
             } if (gamepad1.dpad_down) {
 //                bot.getVisionPortal().stopStreaming();
                 mode = State.INTAKE;
-                bot.setLauncherVelocity(0);
-                bot.setIntakePower(1);
+//                bot.setLauncherVelocity(-180);
+                bot.setIntakePower(-1);
             } if (gamepad1.dpad_right) {
 //                bot.getVisionPortal().stopStreaming();
                 mode = State.OFF;
@@ -110,7 +110,7 @@ public class RRTeleOp extends LinearOpMode {
             // adjust power based on position
             if (mode == State.LAUNCH) {
                 bot.autoPowerLauncher();
-            } else {
+            } else if (mode != State.INTAKE) {
                 bot.setLauncherVelocity(0);
             }
 

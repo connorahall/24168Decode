@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad1;
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
 
 import static java.lang.Thread.sleep;
 
@@ -35,6 +36,10 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 
 public class Robot {
     SampleMecanumDrive drive;
@@ -50,6 +55,7 @@ public class Robot {
     double spinningTime;
     boolean spinning;
     boolean flippingAndSpinning;
+    boolean launched = false;
     double speedFactor;
     double cameraTime = 0;
 
@@ -64,7 +70,7 @@ public class Robot {
     public static Position cameraPosition = new Position(DistanceUnit.INCH,
             1, 3, 8.5, 0);
     public static YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
-            0, -73, 0, 0);
+            0, -71.5, 0, 0);
 
 
     private AprilTagProcessor aprilTag;
@@ -80,8 +86,9 @@ public class Robot {
     public enum Color {
         PURPLE, GREEN, BLUE, RED, EMPTY
     }
-    Color[] drum = {Color.EMPTY, Color.EMPTY, Color.EMPTY};
+    Color[] drum = {Color.GREEN, Color.PURPLE, Color.PURPLE};
     Color[] motif = {Color.GREEN, Color.PURPLE, Color.PURPLE};
+    int motifInt = 21;
     Color team = Color.RED;
 
     OpMode mode = OpMode.AUTO;
@@ -118,6 +125,8 @@ public class Robot {
 
         initAprilTag();
 
+        setManualExposure(6, 70);
+
         double launchTablePrecision = 1.;
         launchTable = new HashMap<>((int) (500 / launchTablePrecision));
         launchTable = generateLaunchTable(launchTablePrecision);
@@ -149,7 +158,7 @@ public class Robot {
 //        telemetry.update();
         drive.update();
 
-
+        System.out.println(drum[0] + " " + drum[1] + " " + drum[2]);
 
         if (flippingAndSpinning) {
             launchingAndSorting();
@@ -228,6 +237,7 @@ public class Robot {
                 .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
                 .setCameraPose(cameraPosition, cameraOrientation)
 
+
                 // == CAMERA CALIBRATION ==
                 // If you do not manually specify calibration parameters, the SDK will attempt
                 // to load a predefined calibration for your camera.
@@ -235,6 +245,7 @@ public class Robot {
                 // ... these parameters are fx, fy, cx, cy.
 
                 .build();
+
 
         // Adjust Image Decimation to trade-off detection-range for detection-rate.
         // eg: Some typical detection data using a Logitech C920 WebCam
@@ -247,6 +258,7 @@ public class Robot {
 
         // Create the vision portal by using a builder.
         VisionPortal.Builder builder = new VisionPortal.Builder();
+
 
         // Set the camera (webcam vs. built-in RC phone camera).
 //        if (USE_WEBCAM) {
@@ -280,6 +292,44 @@ public class Robot {
         //visionPortal.setProcessorEnabled(aprilTag, true);
 
     }   // end method initAprilTag()
+    private boolean setManualExposure(int exposureMS, int gain) throws InterruptedException {
+        // Ensure Vision Portal has been setup.
+        if (visionPortal == null) {
+            return false;
+        }
+
+        // Wait for the camera to be open
+        if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
+//            telemetry.addData("Camera", "Waiting");
+//            telemetry.update();
+            while ((visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)) {
+                sleep(20);
+            }
+//            telemetry.addData("Camera", "Ready");
+//            telemetry.update();
+        }
+
+        // Set camera controls unless we are stopping.
+//        if (!isStopRequested())
+//        {
+            // Set exposure.  Make sure we are in Manual Mode for these values to take effect.
+            ExposureControl exposureControl = visionPortal.getCameraControl(ExposureControl.class);
+            if (exposureControl.getMode() != ExposureControl.Mode.Manual) {
+                exposureControl.setMode(ExposureControl.Mode.Manual);
+                sleep(50);
+            }
+            exposureControl.setExposure((long)exposureMS, TimeUnit.MILLISECONDS);
+            sleep(20);
+
+            // Set Gain.
+            GainControl gainControl = visionPortal.getCameraControl(GainControl.class);
+            gainControl.setGain(gain);
+            sleep(20);
+            return (true);
+//        } else {
+//            return (false);
+//        }
+    }
 
     /**
      * Add telemetry about AprilTag detections.
@@ -311,16 +361,19 @@ public class Robot {
                         motif[0] = Color.GREEN;
                         motif[1] = Color.PURPLE;
                         motif[2] = Color.PURPLE;
+                        motifInt = 21;
                     }
                     else if (detection.id == 22) {
                         motif[0] = Color.PURPLE;
                         motif[1] = Color.GREEN;
                         motif[2] = Color.PURPLE;
+                        motifInt = 22;
                     }
                     else if (detection.id == 23) {
                         motif[0] = Color.PURPLE;
                         motif[1] = Color.PURPLE;
                         motif[2] = Color.GREEN;
+                        motifInt = 23;
                     }
                 }
 
@@ -475,6 +528,9 @@ public class Robot {
     public Object getLock() {
         return lock;
     }
+    public Color[] getMotif() {
+        return motif;
+    }
     public void setOpMode(OpMode mode) {
         this.mode = mode;
     }
@@ -521,7 +577,7 @@ public class Robot {
         spinning = true;
 //        spinningTime = timer.milliseconds();
 //        sorter.setPower(-1);
-        shiftDrum();
+        shiftDrumReverse();
     }
     public void moveSorterCW() {
         if (!spinning) {
@@ -529,7 +585,7 @@ public class Robot {
             spinningTime = timer.milliseconds();
         }
         spinning = true;
-        shiftDrumReverse();
+        shiftDrum();
     }
     public void moveSorter(Color color) {
         if (!spinning) {
@@ -569,17 +625,21 @@ public class Robot {
     }
     public void launchAndSort() {
 //        System.out.println(flipperTime + 900 < timer.milliseconds());
-        if (!flippingAndSpinning) {
+        if (!flippingAndSpinning && !spinning && !flipping) {
             launch();
             flippingAndSpinning = true;
             flipperTime = timer.milliseconds();
         }
     }
     public boolean launched() {
-        return !spinning && flipperTime + 900 < timer.milliseconds();
+        return launched;
+    }
+    public void setLaunched(boolean launched) {
+        this.launched = launched;
     }
     private void launchingAndSorting() {
         if (!spinning && flipperTime + 900 < timer.milliseconds()) {
+            launched = true;
             moveSorterCCW();
 //            System.out.println("?");
         } else if (spinning && (spinningTime + 500 < timer.milliseconds() || atSorterPosition())) {
