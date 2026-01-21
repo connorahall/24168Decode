@@ -91,17 +91,12 @@ public class RRTeleOp extends LinearOpMode {
             dashboardTelemetry.update();
 
             if (gamepad1.dpad_up) {
-//                bot.getVisionPortal().resumeStreaming();
                 mode = State.LAUNCH;
-//                bot.setLauncherVelocity(vel);
-//                bot.setIntakePower(-0.5);
+                bot.setIntakePower(0.5);
             } if (gamepad1.dpad_down) {
-//                bot.getVisionPortal().stopStreaming();
                 mode = State.INTAKE;
-//                bot.setLauncherVelocity(-180);
                 bot.setIntakePower(-1);
             } if (gamepad1.dpad_right) {
-//                bot.getVisionPortal().stopStreaming();
                 mode = State.OFF;
                 bot.setLauncherVelocity(0);
                 bot.setIntakePower(0);

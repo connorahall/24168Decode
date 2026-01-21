@@ -59,7 +59,7 @@ public class Robot {
     double speedFactor;
     double cameraTime = 0;
 
-    int goalX = 64;
+    int goalX = 62;
     int goalY = 64;
     ElapsedTime timer;
     private final Object lock;
@@ -68,9 +68,9 @@ public class Robot {
 
 
     public static Position cameraPosition = new Position(DistanceUnit.INCH,
-            1, 3, 8.5, 0);
+            3, 5, 8.5, 0);
     public static YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
-            0, -71.5, 0, 0);
+            5, -69, 7, 0);
 
 
     private AprilTagProcessor aprilTag;
@@ -125,7 +125,7 @@ public class Robot {
 
         initAprilTag();
 
-        setManualExposure(6, 70);
+        setManualExposure(20, 70);
 
         double launchTablePrecision = 1.;
         launchTable = new HashMap<>((int) (500 / launchTablePrecision));
@@ -193,7 +193,13 @@ public class Robot {
                         .rotated(-(drive.getPoseEstimate().getHeading() - Math.toRadians(90)));
             }
 
-            drive.setWeightedDrivePower(new Pose2d(input.getX(), input.getY(), -gamepad1.right_stick_x * speedFactor));
+//            System.out.println(launcher.getPower());
+
+            if (launcher.getPower() > 0.2) {
+                drive.setWeightedDrivePower(new Pose2d(input.getX(), input.getY(), headingDeviationFromGoalRadians()*2));
+            } else {
+                drive.setWeightedDrivePower(new Pose2d(input.getX(), input.getY(), -gamepad1.right_stick_x * speedFactor));
+            }
 
             if (gamepad1.options && team == Color.BLUE){
                 drive.setPoseEstimate(new Pose2d(drive.getPoseEstimate().getX(), drive.getPoseEstimate().getY(), 270));
@@ -213,10 +219,12 @@ public class Robot {
         int distance = (int) Math.round(distanceFromGoal());
         try {
             return launchTable.get(distance) - ((distance - 72) * 3);
-        } catch (Exception e) {
+        } catch (NullPointerException e) {
             // if it fails, keep launcher at the same velocity
             System.out.println("launchTable get() error at distance " + distance);
-            return (int)launcher.getVelocity(AngleUnit.DEGREES);
+            distance = (int)Math.round(distanceFromGoal(0, 0));
+            return launchTable.get(distance) - ((distance - 72) * 3);
+//            return (int)launcher.getVelocity(AngleUnit.DEGREES);
         }
     }
     public void autoPowerLauncher() {
@@ -450,7 +458,6 @@ public class Robot {
             }
         }
     }
-
     HashMap<Integer, Integer> generateLaunchTable(double precision) {
 
         HashMap<Integer, Integer> ret = new HashMap<>((int) (500 / precision));
@@ -463,11 +470,8 @@ public class Robot {
             ret.put((int)Math.round(distance), i);
 //            System.out.println((int)Math.round(distance) + " " + i);
         }
-
         return ret;
-
     }
-
     double velToDistance(double vel) {
 
 
@@ -482,13 +486,7 @@ public class Robot {
         return ((vel* c) / a) * (Math.cos(angle) * (-1*Math.sin(angle)*(vel* c) - Math.sqrt((vel* c)*(vel* c)*Math.sin(angle)*Math.sin(angle)+(2* a * h))));
     }
 
-//    double ddxVelToDistance(double vel) {
-//        return ((vel*c) / a) * (Math.sin(angle) * (Math.sin(angle)*(vel*c) + Math.sqrt((vel*c)*(vel*c)*Math.sin(angle)*Math.sin(angle) + 2*a*h)) - Math.cos(angle)*(Math.cos(angle)*(vel*c)+(2*(vel*c)*(vel*c)*Math.sin(angle)*Math.cos(angle)) / (2*Math.sqrt((vel*c)*(vel*c)*Math.sin(angle)*Math.sin(angle) + 2*a*h))));
-//    }
-
-    private double distanceFromGoal() {
-        double x = drive.getPoseEstimate().getX();
-        double y = drive.getPoseEstimate().getY();
+    private double distanceFromGoal(double x, double y) {
         x = x > 72 ? 72 : x;
         x = x < -72 ? -72 : x;
         y = y > 72 ? 72 : y;
@@ -496,6 +494,11 @@ public class Robot {
         if (team == Color.RED)
             return Math.sqrt(Math.pow(x+goalX, 2) + Math.pow(y-goalY, 2));
         return Math.sqrt(Math.pow(x+goalX, 2) + Math.pow(y+goalY, 2));
+    }
+    private double distanceFromGoal() {
+        double x = drive.getPoseEstimate().getX();
+        double y = drive.getPoseEstimate().getY();
+        return distanceFromGoal(x, y);
     }
     private double headingDeviationFromGoalRadians() {
         double x = drive.getPoseEstimate().getX();
