@@ -49,7 +49,11 @@ public class RRTeleOp extends LinearOpMode {
     enum State {
         INTAKE, LAUNCH, OFF
     }
+    enum SorterState {
+        INTAKING, LAUNCHING
+    }
     State mode = State.OFF;
+    SorterState sorterState = SorterState.LAUNCHING;
 
 
     Robot bot;
@@ -91,10 +95,18 @@ public class RRTeleOp extends LinearOpMode {
             dashboardTelemetry.update();
 
             if (gamepad1.dpad_up) {
+                if (sorterState == SorterState.INTAKING) {
+                    bot.moveSorterCCW(0.5);
+                }
                 mode = State.LAUNCH;
+                sorterState = SorterState.LAUNCHING;
                 bot.setIntakePower(0.5);
             } if (gamepad1.dpad_down) {
+                if (sorterState == SorterState.LAUNCHING) {
+                    bot.moveSorterCCW(0.5);
+                }
                 mode = State.INTAKE;
+                sorterState = SorterState.INTAKING;
                 bot.setIntakePower(-1);
             } if (gamepad1.dpad_right) {
                 mode = State.OFF;

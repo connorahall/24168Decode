@@ -59,7 +59,7 @@ public class Robot {
     double speedFactor;
     double cameraTime = 0;
 
-    int goalX = 62;
+    int goalX = 60;
     int goalY = 64;
     ElapsedTime timer;
     private final Object lock;
@@ -70,7 +70,7 @@ public class Robot {
     public static Position cameraPosition = new Position(DistanceUnit.INCH,
             3, 5, 8.5, 0);
     public static YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
-            5, -69, 7, 0);
+            5, -71, 7, 0);
 
 
     private AprilTagProcessor aprilTag;
@@ -155,10 +155,10 @@ public class Robot {
 //        telemetryAprilTag();
 
         // Push telemetry to the Driver Station.
-//        telemetry.update();
+//        telemetry.update();F
         drive.update();
 
-        System.out.println(drum[0] + " " + drum[1] + " " + drum[2]);
+//        System.out.println(drum[0] + " " + drum[1] + " " + drum[2]);
 
         if (flippingAndSpinning) {
             launchingAndSorting();
@@ -181,7 +181,7 @@ public class Robot {
                 speedFactor = 0.6;
 
             if (!(spinning || gamepad1.left_bumper || gamepad1.right_bumper)) {
-                sorterPID.setTarget(sorterPID.getTarget() + (int)gamepad1.right_stick_y*10);
+                sorterPID.setTarget(sorterPID.getTarget() + (int)gamepad1.right_stick_y*20);
             }
 
             Vector2d input;
@@ -570,11 +570,11 @@ public class Robot {
             drum[0] = Color.EMPTY;
         }
     }
-    public void moveSorterCCW() {
+    public void moveSorterCCW(double percent) {
         if (!spinning) {
-            sorterPID.setTarget(sorterPID.getTarget() + 2720);
+            sorterPID.setTarget(sorterPID.getTarget() + (int)(2720 * percent));
             spinningTime = timer.milliseconds();
-            System.out.println("um what");
+//            System.out.println("um what");
 //            System.out.println(spinningTime);
         }
         spinning = true;
@@ -582,13 +582,20 @@ public class Robot {
 //        sorter.setPower(-1);
         shiftDrumReverse();
     }
-    public void moveSorterCW() {
+    public void moveSorterCCW() {
+        moveSorterCCW(1);
+    }
+    public void moveSorterCW(double percent) {
         if (!spinning) {
-            sorterPID.setTarget(sorterPID.getTarget() - 2720);
+            sorterPID.setTarget(sorterPID.getTarget() - (int)(2720*percent));
             spinningTime = timer.milliseconds();
         }
         spinning = true;
         shiftDrum();
+
+    }
+    public void moveSorterCW() {
+        moveSorterCW(1);
     }
     public void moveSorter(Color color) {
         if (!spinning) {
