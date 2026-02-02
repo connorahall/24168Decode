@@ -29,8 +29,11 @@ public class MeepMeepTesting {
                     .followTrajectorySequence(drive -> drive.trajectorySequenceBuilder(new Pose2d(-50, -50, Math.toRadians(50)))
                             .lineToLinearHeading(new Pose2d(-20, -18, Math.toRadians(160)))
                             .lineToLinearHeading(new Pose2d(-19.9, -17.9, Math.toRadians(225)))
-                            .lineToLinearHeading(new Pose2d(-12, -32, Math.toRadians(270)))
+                            .setReversed(true)
+                            .splineToLinearHeading(new Pose2d(-12, -32, Math.toRadians(270)), Math.toRadians(270))
                             .lineToLinearHeading(new Pose2d(-12, -45, Math.toRadians(270)))
+                            .lineToLinearHeading(new Pose2d(-19.9, -17.9, Math.toRadians(225)))
+                            .splineToLinearHeading(new Pose2d(12, -32, Math.toRadians(270)), Math.toRadians(270))
 
 
                             .build());

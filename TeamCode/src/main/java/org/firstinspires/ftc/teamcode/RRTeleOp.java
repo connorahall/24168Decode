@@ -83,15 +83,16 @@ public class RRTeleOp extends LinearOpMode {
         while (opModeIsActive() && !isStopRequested()) {
 
             telemetry.update();
-//            bot.getSorterPID().setKp(kp);
-//            bot.getSorterPID().setKi(ki);
-//            bot.getSorterPID().setKd(kd);
-//            bot.getSorterPID().setTarget((int)target);
-            bot.getSorterPID().update();
+//            bot.getLauncherPID().setKp(kp);
+//            bot.getLauncherPID().setKi(ki);
+//            bot.getLauncherPID().setKd(kd);
+//            bot.getLauncherPID().setTarget((int)target);
 
 
-            dashboardTelemetry.addData("target", bot.getSorterPID().getTarget());
-            dashboardTelemetry.addData("actual", bot.getSorterPID().getPosition());
+//            dashboardTelemetry.addData("intake velocity", bot.intake.getVelocity());
+//            dashboardTelemetry.addData("intake power", bot.intake.getPower());
+            dashboardTelemetry.addData("launch target", bot.launcherPID.getTarget());
+            dashboardTelemetry.addData("launch actual", bot.launcherPID.getPosition());
             dashboardTelemetry.update();
 
             if (gamepad1.dpad_up) {
@@ -110,7 +111,7 @@ public class RRTeleOp extends LinearOpMode {
                 bot.setIntakePower(-1);
             } if (gamepad1.dpad_right) {
                 mode = State.OFF;
-                bot.setLauncherVelocity(0);
+                bot.getLauncherPID().setPower(0);
                 bot.setIntakePower(0);
             }
 
@@ -118,17 +119,12 @@ public class RRTeleOp extends LinearOpMode {
             if (mode == State.LAUNCH) {
                 bot.autoPowerLauncher();
             } else if (mode != State.INTAKE) {
-                bot.setLauncherVelocity(0);
+                bot.launcherPID.setPower(0);
             }
 
             // put a ball into launcher
             if (gamepad1.right_trigger > 0.5) {
-                if (bot.getTeam() == Robot.Color.EMPTY) {
-                    bot.setTeam(bot.identifyMyTeamTeleOp());
-                    telemetry.addData("We are", bot.getTeam());
-                    telemetry.update();
-                }
-                else if (gamepad1.dpad_left) {
+                if (gamepad1.dpad_left) {
                     bot.launch();
                 } else {
                     bot.launchAndSort();
@@ -143,6 +139,15 @@ public class RRTeleOp extends LinearOpMode {
             if (gamepad1.right_bumper) {
 //                bot.moveSorter(Robot.Color.PURPLE);
                 bot.moveSorterCW();
+            }
+            if (gamepad1.circle) {
+                bot.setTeam(Robot.Color.RED);
+                gamepad1.setLedColor(1, 0, 0, 1000);
+            }
+            if (gamepad1.cross) {
+                bot.setTeam(Robot.Color.BLUE);
+                gamepad1.setLedColor(0, 0, 1, 1000);
+
             }
 
             bot.update();

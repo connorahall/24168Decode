@@ -21,7 +21,7 @@ public class RRAuto extends LinearOpMode {
 
     // different states used to control logic flow in loop
     enum State {
-        IDLE, SCORE_FIRST, SCORING_FIRST, PREP, GET_MOTIF, INTAKING
+        IDLE, SCORE, SCORING, PREP, GET_MOTIF, INTAKING
     }
 
     // bot object that operates the robot
@@ -48,39 +48,101 @@ public class RRAuto extends LinearOpMode {
         }
 
         // uses the same trajectories but instantiates them differently depending on our team
-        TrajectorySequence getMotif, scoreFirst, prep, moveForwardFirst, moveForwardSecond, moveForwardThird;
+        TrajectorySequence getMotif;
+        TrajectorySequence[] prep = new TrajectorySequence[3];
+        TrajectorySequence[] moveForward = new TrajectorySequence[3];
+        TrajectorySequence[] score = new TrajectorySequence[4];
 
         if (bot.getTeam() == Robot.Color.BLUE) {
+            getMotif = drive.trajectorySequenceBuilder(bot.getDrive().getPoseEstimate())
+                    .lineToLinearHeading(new Pose2d(-20, -18, Math.toRadians(160)))
+                    .build();
+            score[0] = drive.trajectorySequenceBuilder(getMotif.end())
+                    .lineToLinearHeading(new Pose2d(getMotif.end().getX()+0.1, getMotif.end().getY()+0.1, Math.toRadians(225)))
+                    .build();
+            prep[0] = drive.trajectorySequenceBuilder(score[0].end())
+                    .setReversed(true)
+                    .splineToLinearHeading(new Pose2d(-12, -34, Math.toRadians(270)), Math.toRadians(270))
+                    .build();
+            moveForward[0] = drive.trajectorySequenceBuilder(prep[0].end())
+                    .lineToLinearHeading(new Pose2d(-12, -52, Math.toRadians(270)),
+                            SampleMecanumDrive.getVelocityConstraint(10, 6.5, 12.5),
+                            SampleMecanumDrive.getAccelerationConstraint(40))
+                    .build();
+            score[1] = drive.trajectorySequenceBuilder(moveForward[0].end())
+                    .lineToLinearHeading(new Pose2d(-15, -13, Math.toRadians(225)))
+                    .build();
+            prep[1] = drive.trajectorySequenceBuilder(score[1].end())
+                    .setReversed(true)
+                    .splineToLinearHeading(new Pose2d(12, -34, Math.toRadians(270)), Math.toRadians(270))
+                    .build();
+            moveForward[1] = drive.trajectorySequenceBuilder(prep[1].end())
+                    .lineToLinearHeading(new Pose2d(12, -52, Math.toRadians(270)),
+                            SampleMecanumDrive.getVelocityConstraint(10, 6.5, 12.5),
+                            SampleMecanumDrive.getAccelerationConstraint(40))
+                    .build();
+            score[2] = drive.trajectorySequenceBuilder(moveForward[1].end())
+                    .lineToLinearHeading(new Pose2d(-10, -10, Math.toRadians(225)))
+                    .build();
+            prep[2] = drive.trajectorySequenceBuilder(score[2].end())
+                    .setReversed(true)
+                    .splineToLinearHeading(new Pose2d(36, -34, Math.toRadians(270)), Math.toRadians(270))
+                    .build();
+            moveForward[2] = drive.trajectorySequenceBuilder(prep[2].end())
+                    .lineToLinearHeading(new Pose2d(36, -52, Math.toRadians(270)),
+                            SampleMecanumDrive.getVelocityConstraint(10, 6.5, 12.5),
+                            SampleMecanumDrive.getAccelerationConstraint(40))
+                    .build();
+            score[3] = drive.trajectorySequenceBuilder(moveForward[2].end())
+                    .lineToLinearHeading(new Pose2d(getMotif.end().getX()+0.1, getMotif.end().getY()+0.1, Math.toRadians(230)))
+                    .build();
+
+        } else {
             getMotif = drive.trajectorySequenceBuilder(new Pose2d(-50, -50, Math.toRadians(90)))
                     .lineToLinearHeading(new Pose2d(-20, -18, Math.toRadians(160)))
                     .build();
-
-            scoreFirst = drive.trajectorySequenceBuilder(getMotif.end())
+            score[0] = drive.trajectorySequenceBuilder(getMotif.end())
                     .lineToLinearHeading(new Pose2d(getMotif.end().getX()+0.1, getMotif.end().getY()+0.1, Math.toRadians(230)))
                     .build();
-            prep = drive.trajectorySequenceBuilder(scoreFirst.end())
-                    .lineToLinearHeading(new Pose2d(-12, -32, Math.toRadians(270)))
+            prep[0] = drive.trajectorySequenceBuilder(score[0].end())
+                    .lineToLinearHeading(new Pose2d(-12, -34, Math.toRadians(270)))
                     .build();
-            moveForwardFirst = drive.trajectorySequenceBuilder(prep.end())
-                    .lineToLinearHeading(new Pose2d(-12, -50, Math.toRadians(270)),
-                    SampleMecanumDrive.getVelocityConstraint(10, 6.5, 12.5),
-                    SampleMecanumDrive.getAccelerationConstraint(40))
+            moveForward[0] = drive.trajectorySequenceBuilder(prep[0].end())
+                    .lineToLinearHeading(new Pose2d(-12, -52, Math.toRadians(270)),
+                            SampleMecanumDrive.getVelocityConstraint(10, 6.5, 12.5),
+                            SampleMecanumDrive.getAccelerationConstraint(40))
                     .build();
-        } else {
-             getMotif = drive.trajectorySequenceBuilder(new Pose2d(-50, 50, Math.toRadians(270)))
-                    .lineToLinearHeading(new Pose2d(-20, 18, Math.toRadians(200)))
+            score[1] = drive.trajectorySequenceBuilder(moveForward[0].end())
+                    .lineToLinearHeading(new Pose2d(getMotif.end().getX()+0.1, getMotif.end().getY()+0.1, Math.toRadians(230)))
                     .build();
-            scoreFirst = drive.trajectorySequenceBuilder(getMotif.end())
-                    .lineToLinearHeading(new Pose2d(getMotif.end().getX()+0.1, getMotif.end().getY()+0.1, Math.toRadians(130 )))
+            prep[1] = drive.trajectorySequenceBuilder(score[1].end())
+                    .lineToLinearHeading(new Pose2d(12, -34, Math.toRadians(270)))
                     .build();
-            prep = drive.trajectorySequenceBuilder(scoreFirst.end())
-                    .lineToLinearHeading(new Pose2d(-20, 40, Math.toRadians(90)))
+            moveForward[1] = drive.trajectorySequenceBuilder(prep[1].end())
+                    .lineToLinearHeading(new Pose2d(12, -52, Math.toRadians(270)),
+                            SampleMecanumDrive.getVelocityConstraint(10, 6.5, 12.5),
+                            SampleMecanumDrive.getAccelerationConstraint(40))
                     .build();
-            moveForwardFirst = drive.trajectorySequenceBuilder(prep.end())
-                    .lineToLinearHeading(new Pose2d(-17, 38, Math.toRadians(270)))
+            score[2] = drive.trajectorySequenceBuilder(moveForward[1].end())
+                    .lineToLinearHeading(new Pose2d(getMotif.end().getX()+0.1, getMotif.end().getY()+0.1, Math.toRadians(230)))
+                    .build();
+            prep[2] = drive.trajectorySequenceBuilder(score[2].end())
+                    .lineToLinearHeading(new Pose2d(36, -34, Math.toRadians(270)))
+                    .build();
+            moveForward[2] = drive.trajectorySequenceBuilder(prep[2].end())
+                    .lineToLinearHeading(new Pose2d(36, -52, Math.toRadians(270)),
+                            SampleMecanumDrive.getVelocityConstraint(10, 6.5, 12.5),
+                            SampleMecanumDrive.getAccelerationConstraint(40))
+                    .build();
+            score[3] = drive.trajectorySequenceBuilder(moveForward[2].end())
+                    .lineToLinearHeading(new Pose2d(getMotif.end().getX()+0.1, getMotif.end().getY()+0.1, Math.toRadians(230)))
                     .build();
         }
-        bot.setPoseEstimate(getMotif.start());
+//        bot.setPoseEstimate(getMotif.start());
+
+        for (int i = 0; i < 10; i++) {
+            bot.cameraTelemetryWhenStill();
+        }
 
         bot.setInitialState();
 
@@ -90,10 +152,15 @@ public class RRAuto extends LinearOpMode {
 
         waitForStart();
 
-        bot.setLauncherVelocity(230);
+        bot.getLauncherPID().setTarget(200);
 
         drive.followTrajectorySequenceAsync(getMotif);
         State state = State.GET_MOTIF;
+
+//        State state = State.SCORE;
+//        drive.followTrajectorySequenceAsync(score[0]);
+
+
 
         FtcDashboard dashboard = FtcDashboard.getInstance();
         Telemetry dashboardTelemetry = dashboard.getTelemetry();
@@ -104,40 +171,46 @@ public class RRAuto extends LinearOpMode {
         ElapsedTime timer = new ElapsedTime();
         double time = 0.0;
         int count = 0;
+        int row = 0;
 
         while(opModeIsActive() && !isStopRequested()) {
             bot.cameraTelemetryWhenStill();
-            bot.getSorterPID().update();
 
-            dashboardTelemetry.addData("target", bot.getSorterPID().getTarget());
-            dashboardTelemetry.addData("actual", bot.getSorterPID().getPosition());
+            dashboardTelemetry.addData("target", bot.getAutoPower());
+            dashboardTelemetry.addData("actual", bot.launcher.getVelocity(AngleUnit.DEGREES));
             dashboardTelemetry.update();
             switch(state) {
                 case GET_MOTIF:
                     if (bot.motifInt != 0 && !drive.isBusy()) {
-                        state = State.SCORE_FIRST;
-                        drive.followTrajectorySequenceAsync(scoreFirst);
+                        state = State.SCORE;
+                        drive.followTrajectorySequenceAsync(score[row]);
 //                        System.out.println(bot.motifInt);
                     }
                     break;
-                case SCORE_FIRST:
+                case SCORE:
                     if (!drive.isBusy()) {
-                        state = State.SCORING_FIRST;
+                        state = State.SCORING;
                         System.out.println("Scoring first");
-                        if (time != 0) {
+                        bot.setIntakePower(0);
+                        if (bot.getSorterPID().getTarget() % 2720 != 0) {
                             bot.moveSorterCCW(0.5);
                         }
                     }
                     break;
-                case SCORING_FIRST:
+                case SCORING:
                     bot.autoPowerLauncher();
-                    System.out.println(count);
+                    System.out.println(row);
                     if (count == 3) {
-                        state = State.PREP;
-                        drive.followTrajectorySequenceAsync(prep);
-                        bot.setLauncherVelocity(0);
+                        if (row < 3) {
+                            state = State.PREP;
+                            drive.followTrajectorySequenceAsync(prep[row]);
+                        } else {
+                            state = State.IDLE;
+                        }
+                        bot.getLauncherPID().setPower(0);
                     } else {
-                        if (Math.abs(bot.launcher.getVelocity(AngleUnit.DEGREES) - bot.getAutoPower()) < 10) {
+//                        System.out.println(timer.milliseconds() - time);
+                        if (time + 1000 < timer.milliseconds()) {
 
 //                            System.out.println(bot.launched());
 //                            if (bot.drum[0] == bot.motif[launched]) {
@@ -154,6 +227,7 @@ public class RRAuto extends LinearOpMode {
                             if (bot.launched()) {
                                 count++;
                                 bot.setLaunched(false);
+                                time = timer.milliseconds();
                             }
                         }
 
@@ -164,7 +238,7 @@ public class RRAuto extends LinearOpMode {
                         state = State.INTAKING;
                         bot.moveSorterCCW(0.5);
                         bot.setIntakePower(-1);
-                        drive.followTrajectorySequenceAsync(moveForwardFirst);
+                        drive.followTrajectorySequenceAsync(moveForward[row]);
                         time = timer.milliseconds();
                         count = 0;
                     }
@@ -172,26 +246,37 @@ public class RRAuto extends LinearOpMode {
                 case INTAKING:
                     System.out.println(count);
                     // counts to 4. first count doesn't spin
-                    if (time + 500 < timer.milliseconds() && count == 0) {
+                    if (count == 0 && time + 500 + (100*row) < timer.milliseconds()) {
                         time = timer.milliseconds();
                         count++;
                     }
-                    if (time + 500 < timer.milliseconds() && count < 4 && count > 0) {
-                        bot.moveSorterCCW();
-                        time = timer.milliseconds();
+                    // once the intake detects a ball, start the spin timer
+//                    if (bot.intake.getVelocity() > -2200) {
+//                        time = timer.milliseconds();
+//                    }
+//                    bot.getSorterPID().setPower(0.2);
+                    // spin a certain time after the intake detects a ball
+                    // after that, hold until a new ball is detected
+                    if (time + 400 < timer.milliseconds()) {
+                        if (count < 4 && count > 0) {
+                            bot.moveSorterCCW();
+                        }
+                        if (count == 3) {
+                            bot.autoPowerLauncher();
+                        }
+//                        if (count == 3) {
+//                            bot.moveSorterCCW(0.5);
+//                        }
                         count++;
-                    }
-                    if (time + 500 < timer.milliseconds() && count == 4) {
-                        bot.moveSorterCCW(0.5);
-                        bot.autoPowerLauncher();
                         time = timer.milliseconds();
-                        count++;
+                        // dont move the sorter while waiting for the next ball to be intaked
+//                        time = Integer.MAX_VALUE;
                     }
                     if (!drive.isBusy()) {
-                        state = State.SCORE_FIRST;
-                        drive.followTrajectorySequenceAsync(scoreFirst);
+                        state = State.SCORE;
                         count = 0;
-                        bot.setIntakePower(0);
+                        row++;
+                        drive.followTrajectorySequenceAsync(score[row]);
                     }
                     break;
                 case IDLE:

@@ -49,11 +49,12 @@ public class Robot {
     RevColorSensorV3 sensor;
     WebcamName camera;
     Encoder sorterEncoder;
-    CustomPID sorterPID;
+    CustomPID sorterPID, launcherPID;
     double flipperTime;
     boolean flipping;
     double spinningTime;
     boolean spinning;
+    double intakeTime;
     boolean flippingAndSpinning;
     boolean launched = false;
     double speedFactor;
@@ -106,6 +107,7 @@ public class Robot {
         camera = hardwareMap.get(WebcamName.class, "Webcam 1");
         sorterEncoder = new Encoder(hardwareMap.get(DcMotorEx.class, "sorter"));
         sorterPID = new CustomPID(sorter, 0.0004, 0, 0, 0);
+        launcherPID = new CustomPID(launcher, 0.1, 0.0001, 0, 0, 1);
 
         launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
@@ -118,6 +120,7 @@ public class Robot {
         spinningTime = 0.0;
         spinning = false;
         flippingAndSpinning = false;
+        intakeTime = 0.0;
 
         lock = new Object();
 
@@ -125,7 +128,7 @@ public class Robot {
 
         initAprilTag();
 
-        setManualExposure(20, 70);
+        setManualExposure(5, 200);
 
         double launchTablePrecision = 1.;
         launchTable = new HashMap<>((int) (500 / launchTablePrecision));
@@ -157,6 +160,8 @@ public class Robot {
         // Push telemetry to the Driver Station.
 //        telemetry.update();F
         drive.update();
+        sorterPID.update();
+        launcherPID.update();
 
 //        System.out.println(drum[0] + " " + drum[1] + " " + drum[2]);
 
@@ -172,6 +177,12 @@ public class Robot {
 
 //        cameraTelemetryAtInterval();
         cameraTelemetryWhenStill();
+
+        // if the intake motor is going too slow
+        if (Math.abs(intake.getPower()) > 0.5 && intakeTime + 100 < timer.milliseconds() && Math.abs(intake.getVelocity()) < 1700) {
+            // reverse it
+            setIntakePower(1);
+        }
 
         if (mode == OpMode.TELEOP) {
 
@@ -228,7 +239,8 @@ public class Robot {
         }
     }
     public void autoPowerLauncher() {
-        launcher.setVelocity(getAutoPower(), AngleUnit.DEGREES);
+//        launcher.setVelocity(getAutoPower(), AngleUnit.DEGREES);
+        launcherPID.setTarget(getAutoPower());
     }
 
     private void initAprilTag() {
@@ -512,6 +524,10 @@ public class Robot {
         }
     }
 
+    public HardwareMap getHardwareMap() {
+        return hardwareMap;
+    }
+
     public void setTeam(Color team) {
         this.team = team;
     }
@@ -555,6 +571,7 @@ public class Robot {
     }
     public void setIntakePower(double power) {
         intake.setPower(power);
+        intakeTime = timer.milliseconds();
     }
     public void launch() {
         if (!flipping) {
@@ -564,7 +581,7 @@ public class Robot {
         }
     }
     private void launching() {
-        if (flipperTime + 500 < timer.milliseconds()) {
+        if (flipperTime + 300 < timer.milliseconds()) {
             flipper.setPosition(0);
             flipping = false;
             drum[0] = Color.EMPTY;
@@ -596,6 +613,7 @@ public class Robot {
     }
     public void moveSorterCW() {
         moveSorterCW(1);
+
     }
     public void moveSorter(Color color) {
         if (!spinning) {
@@ -648,7 +666,7 @@ public class Robot {
         this.launched = launched;
     }
     private void launchingAndSorting() {
-        if (!spinning && flipperTime + 900 < timer.milliseconds()) {
+        if (!spinning && flipperTime + 700 < timer.milliseconds()) {
             launched = true;
             moveSorterCCW();
 //            System.out.println("?");
@@ -683,6 +701,9 @@ public class Robot {
 
     public CustomPID getSorterPID() {
         return sorterPID;
+    }
+    public CustomPID getLauncherPID() {
+        return launcherPID;
     }
 
 

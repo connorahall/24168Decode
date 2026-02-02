@@ -3,41 +3,49 @@ package org.firstinspires.ftc.teamcode;
 import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.acmerobotics.roadrunner.control.PIDFController;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 public class CustomPID {
 
-    private DcMotor motor;
+    private DcMotorEx motor;
     private double Kp;
     private double Ki;
     private double Kd;
     private int target;
+    private int derivative;
     private boolean running = true;
     ElapsedTime timer = new ElapsedTime();
     double integralSum = 0.0;
     double lastError = 0;
     int oldTarget = target;
     boolean override = false;
-    int position;
-    PIDFController controller;
+    double position;
 
-    public CustomPID(DcMotor motor, double kp, double ki, double kd, int target) {
+    public CustomPID(DcMotorEx motor, double kp, double ki, double kd, int target, int derivatives) {
         this.motor = motor;
         Kp = kp;
         Ki = ki;
         Kd = kd;
         this.target = target;
+        derivative = derivatives;
 
         motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        controller = new PIDFController(new PIDCoefficients(Kp, Ki, Kd));
-
+    }
+    public CustomPID(DcMotorEx motor, double kp, double ki, double kd, int target) {
+        this(motor, kp, ki, kd, target, 0);
     }
 
     public void update() {
 
-        position = -(int)(motor.getCurrentPosition());
+        if (derivative == 0) {
+            position = -(int)(motor.getCurrentPosition());
+        } else {
+            position = (motor.getVelocity(AngleUnit.DEGREES));
+        }
         double error = target - position;
 
 
@@ -103,7 +111,7 @@ public class CustomPID {
         this.running = running;
     }
 
-    public int getPosition() {
+    public double getPosition() {
         return position;
     }
 
