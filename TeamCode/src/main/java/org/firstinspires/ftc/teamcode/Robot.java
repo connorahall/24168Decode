@@ -69,9 +69,9 @@ public class Robot {
 
 
     public static Position cameraPosition = new Position(DistanceUnit.INCH,
-            3, 5, 8.5, 0);
+            0, 7, 8.5, 0);
     public static YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
-            5, -71, 7, 0);
+            0, -80, 0, 0);
 
 
     private AprilTagProcessor aprilTag;
@@ -106,8 +106,8 @@ public class Robot {
         sensor = hardwareMap.get(RevColorSensorV3.class, "sensor");
         camera = hardwareMap.get(WebcamName.class, "Webcam 1");
         sorterEncoder = new Encoder(hardwareMap.get(DcMotorEx.class, "sorter"));
-        sorterPID = new CustomPID(sorter, 0.0004, 0, 0, 0);
-        launcherPID = new CustomPID(launcher, 0.1, 0.0001, 0, 0, 1);
+        sorterPID = new CustomPID(sorter, 0.00035, 0, 0.000008, 0);
+//        launcherPID = new CustomPID(launcher, 0.1, 0.0001, 0, 0, 1);
 
         launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
@@ -128,7 +128,7 @@ public class Robot {
 
         initAprilTag();
 
-        setManualExposure(5, 200);
+        setManualExposure(7, 200);
 
         double launchTablePrecision = 1.;
         launchTable = new HashMap<>((int) (500 / launchTablePrecision));
@@ -161,7 +161,7 @@ public class Robot {
 //        telemetry.update();F
         drive.update();
         sorterPID.update();
-        launcherPID.update();
+//        launcherPID.update();
 
 //        System.out.println(drum[0] + " " + drum[1] + " " + drum[2]);
 
@@ -179,9 +179,12 @@ public class Robot {
         cameraTelemetryWhenStill();
 
         // if the intake motor is going too slow
-        if (Math.abs(intake.getPower()) > 0.5 && intakeTime + 100 < timer.milliseconds() && Math.abs(intake.getVelocity()) < 1700) {
+        if (Math.abs(intake.getPower()) > 0.5 && intakeTime + 200 < timer.milliseconds() && Math.abs(intake.getVelocity()) < 1500) {
             // reverse it
             setIntakePower(1);
+        }
+        if (Math.abs(intake.getPower()) < -0.5 && intakeTime + 500 < timer.milliseconds() && Math.abs(intake.getVelocity()) < 1500) {
+            setIntakePower(-1);
         }
 
         if (mode == OpMode.TELEOP) {
@@ -239,8 +242,8 @@ public class Robot {
         }
     }
     public void autoPowerLauncher() {
-//        launcher.setVelocity(getAutoPower(), AngleUnit.DEGREES);
-        launcherPID.setTarget(getAutoPower());
+        launcher.setVelocity(getAutoPower(), AngleUnit.DEGREES);
+//        launcherPID.setTarget(getAutoPower());
     }
 
     private void initAprilTag() {
@@ -374,7 +377,10 @@ public class Robot {
 //                            detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
 //                            detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
 //                    robotPose = to2d(detection.robotPose);
-                    drive.setPoseEstimate(new Pose2d(detection.robotPose.getPosition().x, detection.robotPose.getPosition().y, detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS) + Math.toRadians(90)));
+//                    drive.setPoseEstimate(new Pose2d(
+//                            detection.robotPose.getPosition().x,
+//                            detection.robotPose.getPosition().y,
+//                            detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS) + Math.toRadians(90)));
                     return detection;
                 } else {
                     if (detection.id == 21) {
@@ -463,10 +469,44 @@ public class Robot {
 //            visionPortal.stopLiveView();
         }
     }
+    private boolean averaging = false;
+    private Pose2d average;
+    private int averageCount = 0;
+    public void cameraTelemetryWhenStillBypass() {
+            AprilTagDetection detection = telemetryAprilTag();
+            if (detection == null) {
+                return;
+            }
+            double heading = detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS) + Math.toRadians(90);
+            if (heading < 0) {
+                heading += Math.PI*2;
+            }
+            if (!averaging) {
+                average = new Pose2d(
+                        detection.robotPose.getPosition().x,
+                        detection.robotPose.getPosition().y,
+                        detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS) + Math.toRadians(90));
+
+                averaging = true;
+            } else {
+                average = new Pose2d(
+                        (average.getX()*averageCount + detection.robotPose.getPosition().x) / (averageCount + 1),
+                        (average.getY()*averageCount + detection.robotPose.getPosition().y) / (averageCount + 1),
+                        (average.getHeading()*averageCount + detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS) + Math.toRadians(90)) / (averageCount + 1)
+                );
+            }
+            drive.setPoseEstimate(average);
+            averageCount++;
+//                telemetryAprilTag();
+    }
     public void cameraTelemetryWhenStill() {
         if (drive.getPoseVelocity() != null) {
             if (drive.getPoseVelocity().getX() == 0 && drive.getPoseVelocity().getY() == 0 && drive.getPoseVelocity().getHeading() == 0) {
-                telemetryAprilTag();
+                cameraTelemetryWhenStillBypass();
+            } else {
+                averaging = false;
+                averageCount = 0;
+
             }
         }
     }
@@ -512,7 +552,7 @@ public class Robot {
         double y = drive.getPoseEstimate().getY();
         return distanceFromGoal(x, y);
     }
-    private double headingDeviationFromGoalRadians() {
+    public double headingDeviationFromGoalRadians() {
         double x = drive.getPoseEstimate().getX();
         double y = drive.getPoseEstimate().getY();
         double heading = drive.getPoseEstimate().getHeading();
@@ -581,7 +621,7 @@ public class Robot {
         }
     }
     private void launching() {
-        if (flipperTime + 300 < timer.milliseconds()) {
+        if (flipperTime + 450 < timer.milliseconds()) {
             flipper.setPosition(0);
             flipping = false;
             drum[0] = Color.EMPTY;
@@ -641,7 +681,7 @@ public class Robot {
         drum[1] = temp;
     }
     private void sorting() {
-        if (atSorterPosition() || spinningTime + 500 < timer.milliseconds()) {
+        if (spinningTime + 500 < timer.milliseconds() || atSorterPosition()) {
 
             spinning = false;
 //            if (drum[0] == Color.EMPTY)
@@ -649,7 +689,7 @@ public class Robot {
         }
     }
     private boolean atSorterPosition() {
-        return Math.abs(sorterPID.getTarget() - sorterPID.getPosition()) < 100;
+        return Math.abs(sorterPID.getTarget() - sorterPID.getPosition()) < 200;
     }
     public void launchAndSort() {
 //        System.out.println(flipperTime + 900 < timer.milliseconds());
@@ -666,7 +706,7 @@ public class Robot {
         this.launched = launched;
     }
     private void launchingAndSorting() {
-        if (!spinning && flipperTime + 700 < timer.milliseconds()) {
+        if (!spinning && flipperTime + 900 < timer.milliseconds()) {
             launched = true;
             moveSorterCCW();
 //            System.out.println("?");

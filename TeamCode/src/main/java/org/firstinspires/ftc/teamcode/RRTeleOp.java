@@ -79,20 +79,21 @@ public class RRTeleOp extends LinearOpMode {
         FtcDashboard dashboard = FtcDashboard.getInstance();
         Telemetry dashboardTelemetry = dashboard.getTelemetry();
 
+
         if (isStopRequested()) return;
         while (opModeIsActive() && !isStopRequested()) {
 
             telemetry.update();
-//            bot.getLauncherPID().setKp(kp);
-//            bot.getLauncherPID().setKi(ki);
-//            bot.getLauncherPID().setKd(kd);
+//            bot.getSorterPID().setKp(kp);
+//            bot.getSorterPID().setKi(ki);
+//            bot.getSorterPID().setKd(kd);
 //            bot.getLauncherPID().setTarget((int)target);
 
 
-//            dashboardTelemetry.addData("intake velocity", bot.intake.getVelocity());
-//            dashboardTelemetry.addData("intake power", bot.intake.getPower());
-            dashboardTelemetry.addData("launch target", bot.launcherPID.getTarget());
-            dashboardTelemetry.addData("launch actual", bot.launcherPID.getPosition());
+            dashboardTelemetry.addData("intake target", bot.getSorterPID().getTarget());
+            dashboardTelemetry.addData("intake actual", -bot.sorter.getCurrentPosition());
+            dashboardTelemetry.addData("launch target", bot.getAutoPower());
+            dashboardTelemetry.addData("launch actual", bot.launcher.getVelocity(AngleUnit.DEGREES));
             dashboardTelemetry.update();
 
             if (gamepad1.dpad_up) {
@@ -109,9 +110,11 @@ public class RRTeleOp extends LinearOpMode {
                 mode = State.INTAKE;
                 sorterState = SorterState.INTAKING;
                 bot.setIntakePower(-1);
+                bot.setLauncherVelocity(0);
             } if (gamepad1.dpad_right) {
                 mode = State.OFF;
-                bot.getLauncherPID().setPower(0);
+//                bot.getLauncherPID().setPower(0);
+                bot.setLauncherVelocity(0);
                 bot.setIntakePower(0);
             }
 
@@ -119,7 +122,7 @@ public class RRTeleOp extends LinearOpMode {
             if (mode == State.LAUNCH) {
                 bot.autoPowerLauncher();
             } else if (mode != State.INTAKE) {
-                bot.launcherPID.setPower(0);
+                bot.setLauncherVelocity(0);
             }
 
             // put a ball into launcher
