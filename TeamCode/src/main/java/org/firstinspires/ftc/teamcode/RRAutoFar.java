@@ -143,7 +143,7 @@ public class RRAutoFar extends LinearOpMode {
                 case INTAKING:
                     System.out.println(count);
                     // counts to 4. first count doesn't spin
-                    if (count == 0 && time + 350 < timer.milliseconds()) {
+                    if (count == 0 && time + 400 + (100*row) < timer.milliseconds()) {
                         time = timer.milliseconds();
                         count++;
                     }
@@ -154,12 +154,13 @@ public class RRAutoFar extends LinearOpMode {
 //                    bot.getSorterPID().setPower(0.2);
                     // spin a certain time after the intake detects a ball
                     // after that, hold until a new ball is detected
-                    if (count > 0 && time + 550 < timer.milliseconds()) {
-                        System.out.println("spin");
-                        if (count < 4) {
-                            bot.moveSorterCCW();
+                    if (count > 0 && time + 750 < timer.milliseconds()) {
+                        if (count < 3) {
+//                                bot.moveSorterCCW();
+                            bot.getSorterPID().setTarget(bot.getSorterPID().getTarget() + 2720);
+                            System.out.println("spin");
                         }
-                        if (count == 3) {
+                        if (count == 2) {
                             bot.autoPowerLauncher();
                         }
 //                        if (count == 3) {

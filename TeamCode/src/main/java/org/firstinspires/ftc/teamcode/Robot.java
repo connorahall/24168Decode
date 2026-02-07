@@ -106,7 +106,7 @@ public class Robot {
         sensor = hardwareMap.get(RevColorSensorV3.class, "sensor");
         camera = hardwareMap.get(WebcamName.class, "Webcam 1");
         sorterEncoder = new Encoder(hardwareMap.get(DcMotorEx.class, "sorter"));
-        sorterPID = new CustomPID(sorter, 0.00035, 0, 0.000008, 0);
+        sorterPID = new CustomPID(sorter, 0.00035, 0, 0.000009, 0);
 //        launcherPID = new CustomPID(launcher, 0.1, 0.0001, 0, 0, 1);
 
         launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -183,7 +183,7 @@ public class Robot {
             // reverse it
             setIntakePower(1);
         }
-        if (Math.abs(intake.getPower()) < -0.5 && intakeTime + 500 < timer.milliseconds() && Math.abs(intake.getVelocity()) < 1500) {
+        if (Math.abs(intake.getPower()) < -0.5 && intakeTime + 1000 < timer.milliseconds()) {
             setIntakePower(-1);
         }
 
@@ -191,6 +191,8 @@ public class Robot {
 
             if (gamepad1.left_trigger > 0.5)
                 speedFactor = 1;
+            else if (Math.abs(intake.getPower()) > 0.5)
+                speedFactor = 0.4;
             else
                 speedFactor = 0.6;
 
@@ -594,9 +596,9 @@ public class Robot {
         this.mode = mode;
     }
     public void setInitialState() {
-        intake.setPower(0);
-        sorter.setPower(0);
         flipper.setPosition(0);
+        sorterPID.setTarget(0);
+        intake.setPower(0);
 
     }
     public void setRestState() {
@@ -689,7 +691,7 @@ public class Robot {
         }
     }
     private boolean atSorterPosition() {
-        return Math.abs(sorterPID.getTarget() - sorterPID.getPosition()) < 200;
+        return Math.abs(sorterPID.getTarget() - sorterPID.getPosition()) < 100;
     }
     public void launchAndSort() {
 //        System.out.println(flipperTime + 900 < timer.milliseconds());

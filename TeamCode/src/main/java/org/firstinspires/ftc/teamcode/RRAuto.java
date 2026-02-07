@@ -61,7 +61,7 @@ public class RRAuto extends LinearOpMode {
         TrajectorySequence[] prep = new TrajectorySequence[3];
         TrajectorySequence[] moveForward = new TrajectorySequence[3];
 //        TrajectorySequence[] score = new TrajectorySequence[4];
-        TrajectorySequence score;
+        TrajectorySequence score, scoreFirst;
 
         if (bot.getTeam() == Robot.Color.BLUE) {
 
@@ -72,6 +72,11 @@ public class RRAuto extends LinearOpMode {
             score = drive.trajectorySequenceBuilder(getMotif.end())
                     .lineToLinearHeading(new Pose2d(-12, -12, Math.toRadians(227)))
                     .build();
+            scoreFirst = drive.trajectorySequenceBuilder(getMotif.end())
+                    .lineToLinearHeading(new Pose2d(-12, -18, Math.toRadians(227)))
+                    .build();
+
+
 //            score[0] = drive.trajectorySequenceBuilder(getMotif.end())
 //                    .lineToLinearHeading(new Pose2d(-12, -12, Math.toRadians(225)))
 //                    .build();
@@ -95,6 +100,9 @@ public class RRAuto extends LinearOpMode {
                     .build();
             score = drive.trajectorySequenceBuilder(getMotif.end())
                     .lineToLinearHeading(new Pose2d(-12, 12, Math.toRadians(133)))
+                    .build();
+            scoreFirst = drive.trajectorySequenceBuilder(getMotif.end())
+                    .lineToLinearHeading(new Pose2d(-12, 18, Math.toRadians(227)))
                     .build();
 //            score[0] = drive.trajectorySequenceBuilder(getMotif.end())
 //                    .lineToLinearHeading(new Pose2d(-12, -12, Math.toRadians(225)))
@@ -160,7 +168,7 @@ public class RRAuto extends LinearOpMode {
                 case GET_MOTIF:
                     if (bot.motifInt != 0 && !drive.isBusy()) {
                         state = State.SCORE;
-                        drive.followTrajectorySequenceAsync(score);
+                        drive.followTrajectorySequenceAsync(scoreFirst);
 //                        System.out.println(bot.motifInt);
                     }
                     break;
@@ -168,7 +176,7 @@ public class RRAuto extends LinearOpMode {
                         if (!drive.isBusy()) {
                             state = State.SCORING;
                             System.out.println("Scoring first");
-//                            bot.setIntakePower(0);
+                            bot.setIntakePower(0);
                             if (bot.getSorterPID().getTarget() % 2720 != 0) {
                                 bot.moveSorterCCW(0.5);
                             }
@@ -181,7 +189,11 @@ public class RRAuto extends LinearOpMode {
                         } else {
                             drive.setWeightedDrivePower(new Pose2d(0, 0, (bot.headingDeviationFromGoalRadians() + Math.toRadians(2)) * 3));
                         }
-                        bot.autoPowerLauncher();
+//                        bot.autoPowerLauncher();
+                        if (count > 0)
+                            bot.setLauncherVelocity(bot.getAutoPower() - 6);
+                        else if (row == 0 || row == 1)
+                            bot.setLauncherVelocity(bot.getAutoPower() + 3);
 //                        System.out.println(row);
                         if (count == 3) {
                             if (row < 2) {
@@ -193,16 +205,14 @@ public class RRAuto extends LinearOpMode {
 //                        bot.getLauncherPID().setPower(0);
                             System.out.println("zero");
                             bot.setLauncherVelocity(0);
+                            bot.getSorterPID().setTarget(0);
                         } else {
 //                        System.out.println(timer.milliseconds() - time);
-                            if (time + 800 < timer.milliseconds()) {
+                            if (time + 750 < timer.milliseconds()) {
                                 bot.launchAndSort();
                                 System.out.println("launch?");
                                 if (bot.launched()) {
                                     System.out.println("launched?");
-//                                if (count == 0) {
-//                                    drive.followTrajectorySequenceAsync(score);
-//                                }
                                     count++;
                                     bot.setLaunched(false);
                                     time = timer.milliseconds();
@@ -214,8 +224,8 @@ public class RRAuto extends LinearOpMode {
                     case PREP:
                         if (!drive.isBusy()) {
                             state = State.INTAKING;
-                            bot.moveSorterCCW(-0.5);
-//                            bot.setIntakePower(-1);
+                            bot.moveSorterCCW(0.5);
+                            bot.setIntakePower(-1);
                             drive.followTrajectorySequenceAsync(moveForward[row]);
                             time = timer.milliseconds();
                             count = 0;
@@ -224,7 +234,7 @@ public class RRAuto extends LinearOpMode {
                     case INTAKING:
                         System.out.println(count);
                         // counts to 4. first count doesn't spin
-                        if (count == 0 && time + 350 + (100*row) < timer.milliseconds()) {
+                        if (count == 0 && time + 400 + (100*row) < timer.milliseconds()) {
                             time = timer.milliseconds();
                             count++;
                         }
@@ -235,12 +245,13 @@ public class RRAuto extends LinearOpMode {
 //                    bot.getSorterPID().setPower(0.2);
                         // spin a certain time after the intake detects a ball
                         // after that, hold until a new ball is detected
-                        if (count > 0 && time + 550 < timer.milliseconds()) {
-                            System.out.println("spin");
-                            if (count < 4) {
-                                bot.moveSorterCCW();
+                        if (count > 0 && time + 750 < timer.milliseconds()) {
+                            if (count < 3) {
+//                                bot.moveSorterCCW();
+                                bot.getSorterPID().setTarget(bot.getSorterPID().getTarget() - 2720);
+                                System.out.println("spin");
                             }
-                            if (count == 3) {
+                            if (count == 2) {
                                 bot.autoPowerLauncher();
                             }
 //                        if (count == 3) {
